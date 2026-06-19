@@ -9,12 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as LibreriaRouteImport } from './routes/libreria'
 import { Route as GeneraRouteImport } from './routes/genera'
 import { Route as CreaRouteImport } from './routes/crea'
 import { Route as AscoltaRouteImport } from './routes/ascolta'
 import { Route as IndexRouteImport } from './routes/index'
 
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LibreriaRoute = LibreriaRouteImport.update({
   id: '/libreria',
   path: '/libreria',
@@ -47,6 +53,7 @@ export interface FileRoutesByFullPath {
   '/crea': typeof CreaRoute
   '/genera': typeof GeneraRoute
   '/libreria': typeof LibreriaRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,6 +61,7 @@ export interface FileRoutesByTo {
   '/crea': typeof CreaRoute
   '/genera': typeof GeneraRoute
   '/libreria': typeof LibreriaRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,13 +70,27 @@ export interface FileRoutesById {
   '/crea': typeof CreaRoute
   '/genera': typeof GeneraRoute
   '/libreria': typeof LibreriaRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/ascolta' | '/crea' | '/genera' | '/libreria'
+  fullPaths:
+    | '/'
+    | '/ascolta'
+    | '/crea'
+    | '/genera'
+    | '/libreria'
+    | '/sitemap.xml'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/ascolta' | '/crea' | '/genera' | '/libreria'
-  id: '__root__' | '/' | '/ascolta' | '/crea' | '/genera' | '/libreria'
+  to: '/' | '/ascolta' | '/crea' | '/genera' | '/libreria' | '/sitemap.xml'
+  id:
+    | '__root__'
+    | '/'
+    | '/ascolta'
+    | '/crea'
+    | '/genera'
+    | '/libreria'
+    | '/sitemap.xml'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -77,10 +99,18 @@ export interface RootRouteChildren {
   CreaRoute: typeof CreaRoute
   GeneraRoute: typeof GeneraRoute
   LibreriaRoute: typeof LibreriaRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/libreria': {
       id: '/libreria'
       path: '/libreria'
@@ -125,6 +155,7 @@ const rootRouteChildren: RootRouteChildren = {
   CreaRoute: CreaRoute,
   GeneraRoute: GeneraRoute,
   LibreriaRoute: LibreriaRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
