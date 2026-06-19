@@ -9,8 +9,32 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as LibreriaRouteImport } from './routes/libreria'
+import { Route as GeneraRouteImport } from './routes/genera'
+import { Route as CreaRouteImport } from './routes/crea'
+import { Route as AscoltaRouteImport } from './routes/ascolta'
 import { Route as IndexRouteImport } from './routes/index'
 
+const LibreriaRoute = LibreriaRouteImport.update({
+  id: '/libreria',
+  path: '/libreria',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GeneraRoute = GeneraRouteImport.update({
+  id: '/genera',
+  path: '/genera',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CreaRoute = CreaRouteImport.update({
+  id: '/crea',
+  path: '/crea',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AscoltaRoute = AscoltaRouteImport.update({
+  id: '/ascolta',
+  path: '/ascolta',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -19,28 +43,72 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/ascolta': typeof AscoltaRoute
+  '/crea': typeof CreaRoute
+  '/genera': typeof GeneraRoute
+  '/libreria': typeof LibreriaRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/ascolta': typeof AscoltaRoute
+  '/crea': typeof CreaRoute
+  '/genera': typeof GeneraRoute
+  '/libreria': typeof LibreriaRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/ascolta': typeof AscoltaRoute
+  '/crea': typeof CreaRoute
+  '/genera': typeof GeneraRoute
+  '/libreria': typeof LibreriaRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/ascolta' | '/crea' | '/genera' | '/libreria'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/ascolta' | '/crea' | '/genera' | '/libreria'
+  id: '__root__' | '/' | '/ascolta' | '/crea' | '/genera' | '/libreria'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AscoltaRoute: typeof AscoltaRoute
+  CreaRoute: typeof CreaRoute
+  GeneraRoute: typeof GeneraRoute
+  LibreriaRoute: typeof LibreriaRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/libreria': {
+      id: '/libreria'
+      path: '/libreria'
+      fullPath: '/libreria'
+      preLoaderRoute: typeof LibreriaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/genera': {
+      id: '/genera'
+      path: '/genera'
+      fullPath: '/genera'
+      preLoaderRoute: typeof GeneraRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/crea': {
+      id: '/crea'
+      path: '/crea'
+      fullPath: '/crea'
+      preLoaderRoute: typeof CreaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ascolta': {
+      id: '/ascolta'
+      path: '/ascolta'
+      fullPath: '/ascolta'
+      preLoaderRoute: typeof AscoltaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -53,6 +121,10 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AscoltaRoute: AscoltaRoute,
+  CreaRoute: CreaRoute,
+  GeneraRoute: GeneraRoute,
+  LibreriaRoute: LibreriaRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
