@@ -150,7 +150,7 @@ function CreatePage() {
     if (!current.canNext()) return;
     if (isLast) {
       // Stash draft and navigate to generation
-      window.sessionStorage.setItem("narrami:draft", JSON.stringify(draft));
+      window.sessionStorage.setItem("millestorie:draft", JSON.stringify(draft));
       navigate({ to: "/genera" });
     } else {
       setStep((s) => s + 1);
