@@ -54,7 +54,7 @@ function GeneratePage() {
     if (started.current) return;
     started.current = true;
 
-    const raw = typeof window !== "undefined" ? window.sessionStorage.getItem("narrami:draft") : null;
+    const raw = typeof window !== "undefined" ? window.sessionStorage.getItem("millestorie:draft") : null;
     if (!raw) {
       navigate({ to: "/crea" });
       return;

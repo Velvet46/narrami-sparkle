@@ -1,7 +1,7 @@
 import type { Story } from "./types";
 
-const CURRENT_KEY = "narrami:current";
-const LIBRARY_KEY = "narrami:library";
+const CURRENT_KEY = "millestorie:current";
+const LIBRARY_KEY = "millestorie:library";
 
 function safeWindow(): Storage | null {
   if (typeof window === "undefined") return null;
