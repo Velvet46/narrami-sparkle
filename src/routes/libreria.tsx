@@ -10,7 +10,7 @@ import { MODE_META, type Story } from "@/lib/types";
 export const Route = createFileRoute("/libreria")({
   head: () => ({
     meta: [
-      { title: "La tua libreria · Narrami" },
+      { title: "La tua libreria · MilleStorie" },
       { name: "description", content: "Tutte le tue storie magiche, sempre a portata di mano." },
     ],
   }),

@@ -9,7 +9,7 @@ import type { Story, StoryDraft } from "@/lib/types";
 export const Route = createFileRoute("/genera")({
   head: () => ({
     meta: [
-      { title: "La magia sta prendendo forma… · Narrami" },
+      { title: "La magia sta prendendo forma… · MilleStorie" },
       { name: "description", content: "Stiamo creando la tua fiaba magica." },
     ],
   }),

@@ -10,9 +10,9 @@ import { MODE_META, type Story, type StoryMode } from "@/lib/types";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Narrami — Storie magiche per bambini" },
+      { title: "MilleStorie — Storie magiche per bambini" },
       { name: "description", content: "Crea fiabe personalizzate per i tuoi bambini. Avventura, magia, nanna — narrate con voce dolce in italiano." },
-      { property: "og:title", content: "Narrami — Storie magiche per bambini" },
+      { property: "og:title", content: "MilleStorie — Storie magiche per bambini" },
       { property: "og:description", content: "Crea fiabe personalizzate per i tuoi bambini, raccontate ad alta voce." },
     ],
   }),
@@ -34,7 +34,7 @@ function Home() {
           <span className="relative grid size-9 place-items-center rounded-2xl bg-giallo text-primary-foreground shadow-[0_0_24px_var(--glow)]">
             <Sparkles className="size-5" />
           </span>
-          <span className="font-display text-xl font-bold tracking-tight">Narrami</span>
+          <span className="font-display text-xl font-bold tracking-tight">MilleStorie</span>
         </div>
         <Link to="/libreria" className="glass rounded-full px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground">
           Libreria

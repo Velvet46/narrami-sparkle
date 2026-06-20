@@ -15,7 +15,7 @@ export const Route = createFileRoute("/crea")({
   validateSearch: (s) => searchSchema.parse(s),
   head: () => ({
     meta: [
-      { title: "Crea una storia · Narrami" },
+      { title: "Crea una storia · MilleStorie" },
       { name: "description", content: "Personalizza la tua fiaba: protagonista, ambientazione, modalità e durata." },
     ],
   }),

@@ -24,7 +24,7 @@ export const Route = createFileRoute("/ascolta")({
   validateSearch: (s) => searchSchema.parse(s),
   head: () => ({
     meta: [
-      { title: "Stai ascoltando · Narrami" },
+      { title: "Stai ascoltando · MilleStorie" },
       { name: "description", content: "Player audio della tua fiaba magica." },
     ],
   }),
