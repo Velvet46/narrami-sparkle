@@ -26,6 +26,7 @@ export interface Story {
   coverKey: "dragon" | "forest" | "space";
   createdAt: number;
   favorite?: boolean;
+  childId?: string;
 }
 
 export const MODE_META: Record<StoryMode, { label: string; emoji: string; tagline: string }> = {

@@ -20,6 +20,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiTtsRouteImport } from './routes/api/tts'
 import { Route as ApiSttRouteImport } from './routes/api/stt'
 import { Route as AuthenticatedFamigliaRouteImport } from './routes/_authenticated/famiglia'
+import { Route as AuthenticatedBambinoNuovoRouteImport } from './routes/_authenticated/bambino.nuovo'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -75,6 +76,12 @@ const AuthenticatedFamigliaRoute = AuthenticatedFamigliaRouteImport.update({
   path: '/famiglia',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedBambinoNuovoRoute =
+  AuthenticatedBambinoNuovoRouteImport.update({
+    id: '/bambino/nuovo',
+    path: '/bambino/nuovo',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -87,6 +94,7 @@ export interface FileRoutesByFullPath {
   '/famiglia': typeof AuthenticatedFamigliaRoute
   '/api/stt': typeof ApiSttRoute
   '/api/tts': typeof ApiTtsRoute
+  '/bambino/nuovo': typeof AuthenticatedBambinoNuovoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -99,6 +107,7 @@ export interface FileRoutesByTo {
   '/famiglia': typeof AuthenticatedFamigliaRoute
   '/api/stt': typeof ApiSttRoute
   '/api/tts': typeof ApiTtsRoute
+  '/bambino/nuovo': typeof AuthenticatedBambinoNuovoRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -113,6 +122,7 @@ export interface FileRoutesById {
   '/_authenticated/famiglia': typeof AuthenticatedFamigliaRoute
   '/api/stt': typeof ApiSttRoute
   '/api/tts': typeof ApiTtsRoute
+  '/_authenticated/bambino/nuovo': typeof AuthenticatedBambinoNuovoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -127,6 +137,7 @@ export interface FileRouteTypes {
     | '/famiglia'
     | '/api/stt'
     | '/api/tts'
+    | '/bambino/nuovo'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -139,6 +150,7 @@ export interface FileRouteTypes {
     | '/famiglia'
     | '/api/stt'
     | '/api/tts'
+    | '/bambino/nuovo'
   id:
     | '__root__'
     | '/'
@@ -152,6 +164,7 @@ export interface FileRouteTypes {
     | '/_authenticated/famiglia'
     | '/api/stt'
     | '/api/tts'
+    | '/_authenticated/bambino/nuovo'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -246,15 +259,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFamigliaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/bambino/nuovo': {
+      id: '/_authenticated/bambino/nuovo'
+      path: '/bambino/nuovo'
+      fullPath: '/bambino/nuovo'
+      preLoaderRoute: typeof AuthenticatedBambinoNuovoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedFamigliaRoute: typeof AuthenticatedFamigliaRoute
+  AuthenticatedBambinoNuovoRoute: typeof AuthenticatedBambinoNuovoRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFamigliaRoute: AuthenticatedFamigliaRoute,
+  AuthenticatedBambinoNuovoRoute: AuthenticatedBambinoNuovoRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
