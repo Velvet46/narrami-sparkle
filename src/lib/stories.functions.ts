@@ -39,6 +39,7 @@ ${d.companions ? `Personaggi secondari: ${d.companions}` : ""}
 ${d.favoriteAnimal ? `Includi con grazia questo animale: ${d.favoriteAnimal}` : ""}
 ${d.favoriteColor ? `Un colore ricorrente nelle immagini: ${d.favoriteColor}` : ""}
 ${d.moral ? `Morale da trasmettere senza essere didascalica: ${d.moral}` : ""}
+${d.moral ? "" : "Concludi con una piccola morale dolce, naturale, integrata nel finale (una o due frasi, mai didascalica)."}
 ${d.fearsToAvoid ? `EVITA assolutamente questi temi (paure del bambino): ${d.fearsToAvoid}` : ""}
 
 Regole assolute di sicurezza per bambini:

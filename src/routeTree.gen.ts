@@ -15,6 +15,7 @@ import { Route as GeneraRouteImport } from './routes/genera'
 import { Route as CreaRouteImport } from './routes/crea'
 import { Route as AscoltaRouteImport } from './routes/ascolta'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiTtsRouteImport } from './routes/api/tts'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -46,6 +47,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTtsRoute = ApiTtsRouteImport.update({
+  id: '/api/tts',
+  path: '/api/tts',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -54,6 +60,7 @@ export interface FileRoutesByFullPath {
   '/genera': typeof GeneraRoute
   '/libreria': typeof LibreriaRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/api/tts': typeof ApiTtsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -62,6 +69,7 @@ export interface FileRoutesByTo {
   '/genera': typeof GeneraRoute
   '/libreria': typeof LibreriaRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/api/tts': typeof ApiTtsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -71,6 +79,7 @@ export interface FileRoutesById {
   '/genera': typeof GeneraRoute
   '/libreria': typeof LibreriaRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/api/tts': typeof ApiTtsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -81,8 +90,16 @@ export interface FileRouteTypes {
     | '/genera'
     | '/libreria'
     | '/sitemap.xml'
+    | '/api/tts'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/ascolta' | '/crea' | '/genera' | '/libreria' | '/sitemap.xml'
+  to:
+    | '/'
+    | '/ascolta'
+    | '/crea'
+    | '/genera'
+    | '/libreria'
+    | '/sitemap.xml'
+    | '/api/tts'
   id:
     | '__root__'
     | '/'
@@ -91,6 +108,7 @@ export interface FileRouteTypes {
     | '/genera'
     | '/libreria'
     | '/sitemap.xml'
+    | '/api/tts'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -100,6 +118,7 @@ export interface RootRouteChildren {
   GeneraRoute: typeof GeneraRoute
   LibreriaRoute: typeof LibreriaRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  ApiTtsRoute: typeof ApiTtsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -146,6 +165,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/tts': {
+      id: '/api/tts'
+      path: '/api/tts'
+      fullPath: '/api/tts'
+      preLoaderRoute: typeof ApiTtsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -156,6 +182,7 @@ const rootRouteChildren: RootRouteChildren = {
   GeneraRoute: GeneraRoute,
   LibreriaRoute: LibreriaRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  ApiTtsRoute: ApiTtsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
