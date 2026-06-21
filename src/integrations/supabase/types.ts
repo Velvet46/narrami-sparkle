@@ -14,7 +14,95 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      child_profiles: {
+        Row: {
+          age_range: string
+          created_at: string
+          favorite_animal: string | null
+          favorite_color: string | null
+          fears: string | null
+          id: string
+          name: string
+          parent_id: string
+          preferred_voice: string
+        }
+        Insert: {
+          age_range: string
+          created_at?: string
+          favorite_animal?: string | null
+          favorite_color?: string | null
+          fears?: string | null
+          id?: string
+          name: string
+          parent_id: string
+          preferred_voice?: string
+        }
+        Update: {
+          age_range?: string
+          created_at?: string
+          favorite_animal?: string | null
+          favorite_color?: string | null
+          fears?: string | null
+          id?: string
+          name?: string
+          parent_id?: string
+          preferred_voice?: string
+        }
+        Relationships: []
+      }
+      stories: {
+        Row: {
+          age: string
+          child_id: string
+          content: string
+          cover_key: string
+          created_at: string
+          duration: number
+          favorite: boolean
+          id: string
+          mode: string
+          parent_id: string
+          subtitle: string
+          title: string
+        }
+        Insert: {
+          age: string
+          child_id: string
+          content: string
+          cover_key?: string
+          created_at?: string
+          duration: number
+          favorite?: boolean
+          id?: string
+          mode: string
+          parent_id: string
+          subtitle?: string
+          title: string
+        }
+        Update: {
+          age?: string
+          child_id?: string
+          content?: string
+          cover_key?: string
+          created_at?: string
+          duration?: number
+          favorite?: boolean
+          id?: string
+          mode?: string
+          parent_id?: string
+          subtitle?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stories_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "child_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
