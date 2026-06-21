@@ -19,6 +19,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiTtsRouteImport } from './routes/api/tts'
 import { Route as ApiSttRouteImport } from './routes/api/stt'
+import { Route as AuthenticatedParlaRouteImport } from './routes/_authenticated/parla'
 import { Route as AuthenticatedFamigliaRouteImport } from './routes/_authenticated/famiglia'
 import { Route as AuthenticatedBambinoNuovoRouteImport } from './routes/_authenticated/bambino.nuovo'
 
@@ -71,6 +72,11 @@ const ApiSttRoute = ApiSttRouteImport.update({
   path: '/api/stt',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedParlaRoute = AuthenticatedParlaRouteImport.update({
+  id: '/parla',
+  path: '/parla',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedFamigliaRoute = AuthenticatedFamigliaRouteImport.update({
   id: '/famiglia',
   path: '/famiglia',
@@ -92,6 +98,7 @@ export interface FileRoutesByFullPath {
   '/libreria': typeof LibreriaRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/famiglia': typeof AuthenticatedFamigliaRoute
+  '/parla': typeof AuthenticatedParlaRoute
   '/api/stt': typeof ApiSttRoute
   '/api/tts': typeof ApiTtsRoute
   '/bambino/nuovo': typeof AuthenticatedBambinoNuovoRoute
@@ -105,6 +112,7 @@ export interface FileRoutesByTo {
   '/libreria': typeof LibreriaRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/famiglia': typeof AuthenticatedFamigliaRoute
+  '/parla': typeof AuthenticatedParlaRoute
   '/api/stt': typeof ApiSttRoute
   '/api/tts': typeof ApiTtsRoute
   '/bambino/nuovo': typeof AuthenticatedBambinoNuovoRoute
@@ -120,6 +128,7 @@ export interface FileRoutesById {
   '/libreria': typeof LibreriaRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/famiglia': typeof AuthenticatedFamigliaRoute
+  '/_authenticated/parla': typeof AuthenticatedParlaRoute
   '/api/stt': typeof ApiSttRoute
   '/api/tts': typeof ApiTtsRoute
   '/_authenticated/bambino/nuovo': typeof AuthenticatedBambinoNuovoRoute
@@ -135,6 +144,7 @@ export interface FileRouteTypes {
     | '/libreria'
     | '/sitemap.xml'
     | '/famiglia'
+    | '/parla'
     | '/api/stt'
     | '/api/tts'
     | '/bambino/nuovo'
@@ -148,6 +158,7 @@ export interface FileRouteTypes {
     | '/libreria'
     | '/sitemap.xml'
     | '/famiglia'
+    | '/parla'
     | '/api/stt'
     | '/api/tts'
     | '/bambino/nuovo'
@@ -162,6 +173,7 @@ export interface FileRouteTypes {
     | '/libreria'
     | '/sitemap.xml'
     | '/_authenticated/famiglia'
+    | '/_authenticated/parla'
     | '/api/stt'
     | '/api/tts'
     | '/_authenticated/bambino/nuovo'
@@ -252,6 +264,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSttRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/parla': {
+      id: '/_authenticated/parla'
+      path: '/parla'
+      fullPath: '/parla'
+      preLoaderRoute: typeof AuthenticatedParlaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/famiglia': {
       id: '/_authenticated/famiglia'
       path: '/famiglia'
@@ -271,11 +290,13 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedFamigliaRoute: typeof AuthenticatedFamigliaRoute
+  AuthenticatedParlaRoute: typeof AuthenticatedParlaRoute
   AuthenticatedBambinoNuovoRoute: typeof AuthenticatedBambinoNuovoRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFamigliaRoute: AuthenticatedFamigliaRoute,
+  AuthenticatedParlaRoute: AuthenticatedParlaRoute,
   AuthenticatedBambinoNuovoRoute: AuthenticatedBambinoNuovoRoute,
 }
 

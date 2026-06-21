@@ -108,7 +108,7 @@ function TalkPage() {
             if (attempt < 3) await say("Non ti ho sentito, prova ancora.", defaultVoice);
             continue;
           }
-          const m = matchChildName(said, children);
+          const m = matchChildName(said, children).map((x) => children.find((c) => c.id === x.id)!).filter(Boolean) as ChildProfile[];
           if (m.length === 1) { match = m; break; }
           if (m.length > 1) {
             await say(`Sei ${m.map((c) => c.name).join(" o ")}?`, defaultVoice);
