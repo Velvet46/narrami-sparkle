@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Moon, Rocket, Sparkles, BookOpen, Play, ChevronRight } from "lucide-react";
+import { Moon, Rocket, Sparkles, BookOpen, Play, ChevronRight, Mic, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { AppShell } from "@/components/AppShell";
 import { StoryCover } from "@/components/StoryCover";
 import { getLibrary } from "@/lib/story-store";
 import { MODE_META, type Story, type StoryMode } from "@/lib/types";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -23,7 +24,13 @@ const MODES: StoryMode[] = ["nanna", "avventura", "magica", "educativa"];
 
 function Home() {
   const [recent, setRecent] = useState<Story[]>([]);
-  useEffect(() => setRecent(getLibrary().slice(0, 3)), []);
+  const [authed, setAuthed] = useState(false);
+  useEffect(() => {
+    setRecent(getLibrary().slice(0, 3));
+    supabase.auth.getSession().then(({ data }) => setAuthed(!!data.session));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setAuthed(!!s));
+    return () => sub.subscription.unsubscribe();
+  }, []);
   const last = recent[0];
 
   return (
@@ -36,9 +43,17 @@ function Home() {
           </span>
           <span className="font-display text-xl font-bold tracking-tight">MilleStorie</span>
         </div>
-        <Link to="/libreria" className="glass rounded-full px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground">
-          Libreria
-        </Link>
+        <div className="flex items-center gap-2">
+          {authed ? (
+            <Link to="/famiglia" className="glass grid size-9 place-items-center rounded-full" aria-label="Famiglia">
+              <Users className="size-4" />
+            </Link>
+          ) : (
+            <Link to="/auth" className="glass rounded-full px-3 py-1.5 text-xs font-semibold">
+              Entra
+            </Link>
+          )}
+        </div>
       </header>
 
       {/* Greeting */}
@@ -49,7 +64,33 @@ function Home() {
         </h1>
       </section>
 
-      {/* Hero CTA */}
+      {/* Voice CTA (primary if authed) */}
+      {authed ? (
+        <Link
+          to="/parla"
+          className="group relative mt-8 block overflow-hidden rounded-[36px]"
+          aria-label="Parla con MilleStorie"
+        >
+          <div className="absolute inset-0 -z-10 bg-[var(--gradient-sun)]" />
+          <div className="absolute -right-6 -top-6 size-32 rounded-full bg-white/30 blur-2xl animate-float" />
+          <div className="relative flex flex-col gap-5 px-6 pt-8 pb-7 text-primary-foreground">
+            <div className="flex items-center justify-between">
+              <div className="grid size-14 place-items-center rounded-2xl bg-white/30 backdrop-blur-md animate-breathe">
+                <Mic className="size-7" />
+              </div>
+              <span className="rounded-full bg-white/30 px-3 py-1 text-[11px] font-bold uppercase tracking-wider">Hands-free</span>
+            </div>
+            <div>
+              <h2 className="font-display text-[26px] font-bold leading-tight">Parla con MilleStorie</h2>
+              <p className="mt-1 text-sm font-medium opacity-80">L'app ti chiede chi sei e cosa vuoi ascoltare.</p>
+            </div>
+            <div className="flex items-center justify-between rounded-2xl bg-primary-foreground/15 px-4 py-3 backdrop-blur-sm">
+              <span className="text-sm font-semibold">Tocca e parla</span>
+              <ChevronRight className="size-5" />
+            </div>
+          </div>
+        </Link>
+      ) : (
       <Link
         to="/crea"
         className="group relative mt-8 block overflow-hidden rounded-[36px]"
@@ -81,6 +122,13 @@ function Home() {
           </div>
         </div>
       </Link>
+      )}
+
+      {!authed && (
+        <Link to="/auth" className="glass mt-3 flex items-center justify-center gap-2 rounded-2xl py-3 text-xs font-semibold text-muted-foreground">
+          <Mic className="size-4" /> Crea un account per sbloccare la modalità voce
+        </Link>
+      )}
 
       {/* Continue listening */}
       {last && (

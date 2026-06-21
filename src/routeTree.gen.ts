@@ -13,9 +13,15 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as LibreriaRouteImport } from './routes/libreria'
 import { Route as GeneraRouteImport } from './routes/genera'
 import { Route as CreaRouteImport } from './routes/crea'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AscoltaRouteImport } from './routes/ascolta'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiTtsRouteImport } from './routes/api/tts'
+import { Route as ApiSttRouteImport } from './routes/api/stt'
+import { Route as AuthenticatedParlaRouteImport } from './routes/_authenticated/parla'
+import { Route as AuthenticatedFamigliaRouteImport } from './routes/_authenticated/famiglia'
+import { Route as AuthenticatedBambinoNuovoRouteImport } from './routes/_authenticated/bambino.nuovo'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -37,9 +43,18 @@ const CreaRoute = CreaRouteImport.update({
   path: '/crea',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AscoltaRoute = AscoltaRouteImport.update({
   id: '/ascolta',
   path: '/ascolta',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -52,72 +67,128 @@ const ApiTtsRoute = ApiTtsRouteImport.update({
   path: '/api/tts',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSttRoute = ApiSttRouteImport.update({
+  id: '/api/stt',
+  path: '/api/stt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedParlaRoute = AuthenticatedParlaRouteImport.update({
+  id: '/parla',
+  path: '/parla',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedFamigliaRoute = AuthenticatedFamigliaRouteImport.update({
+  id: '/famiglia',
+  path: '/famiglia',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedBambinoNuovoRoute =
+  AuthenticatedBambinoNuovoRouteImport.update({
+    id: '/bambino/nuovo',
+    path: '/bambino/nuovo',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/ascolta': typeof AscoltaRoute
+  '/auth': typeof AuthRoute
   '/crea': typeof CreaRoute
   '/genera': typeof GeneraRoute
   '/libreria': typeof LibreriaRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/famiglia': typeof AuthenticatedFamigliaRoute
+  '/parla': typeof AuthenticatedParlaRoute
+  '/api/stt': typeof ApiSttRoute
   '/api/tts': typeof ApiTtsRoute
+  '/bambino/nuovo': typeof AuthenticatedBambinoNuovoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/ascolta': typeof AscoltaRoute
+  '/auth': typeof AuthRoute
   '/crea': typeof CreaRoute
   '/genera': typeof GeneraRoute
   '/libreria': typeof LibreriaRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/famiglia': typeof AuthenticatedFamigliaRoute
+  '/parla': typeof AuthenticatedParlaRoute
+  '/api/stt': typeof ApiSttRoute
   '/api/tts': typeof ApiTtsRoute
+  '/bambino/nuovo': typeof AuthenticatedBambinoNuovoRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/ascolta': typeof AscoltaRoute
+  '/auth': typeof AuthRoute
   '/crea': typeof CreaRoute
   '/genera': typeof GeneraRoute
   '/libreria': typeof LibreriaRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/_authenticated/famiglia': typeof AuthenticatedFamigliaRoute
+  '/_authenticated/parla': typeof AuthenticatedParlaRoute
+  '/api/stt': typeof ApiSttRoute
   '/api/tts': typeof ApiTtsRoute
+  '/_authenticated/bambino/nuovo': typeof AuthenticatedBambinoNuovoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/ascolta'
+    | '/auth'
     | '/crea'
     | '/genera'
     | '/libreria'
     | '/sitemap.xml'
+    | '/famiglia'
+    | '/parla'
+    | '/api/stt'
     | '/api/tts'
+    | '/bambino/nuovo'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/ascolta'
+    | '/auth'
     | '/crea'
     | '/genera'
     | '/libreria'
     | '/sitemap.xml'
+    | '/famiglia'
+    | '/parla'
+    | '/api/stt'
     | '/api/tts'
+    | '/bambino/nuovo'
   id:
     | '__root__'
     | '/'
+    | '/_authenticated'
     | '/ascolta'
+    | '/auth'
     | '/crea'
     | '/genera'
     | '/libreria'
     | '/sitemap.xml'
+    | '/_authenticated/famiglia'
+    | '/_authenticated/parla'
+    | '/api/stt'
     | '/api/tts'
+    | '/_authenticated/bambino/nuovo'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AscoltaRoute: typeof AscoltaRoute
+  AuthRoute: typeof AuthRoute
   CreaRoute: typeof CreaRoute
   GeneraRoute: typeof GeneraRoute
   LibreriaRoute: typeof LibreriaRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  ApiSttRoute: typeof ApiSttRoute
   ApiTtsRoute: typeof ApiTtsRoute
 }
 
@@ -151,11 +222,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CreaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ascolta': {
       id: '/ascolta'
       path: '/ascolta'
       fullPath: '/ascolta'
       preLoaderRoute: typeof AscoltaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -172,16 +257,62 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTtsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/stt': {
+      id: '/api/stt'
+      path: '/api/stt'
+      fullPath: '/api/stt'
+      preLoaderRoute: typeof ApiSttRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/parla': {
+      id: '/_authenticated/parla'
+      path: '/parla'
+      fullPath: '/parla'
+      preLoaderRoute: typeof AuthenticatedParlaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/famiglia': {
+      id: '/_authenticated/famiglia'
+      path: '/famiglia'
+      fullPath: '/famiglia'
+      preLoaderRoute: typeof AuthenticatedFamigliaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/bambino/nuovo': {
+      id: '/_authenticated/bambino/nuovo'
+      path: '/bambino/nuovo'
+      fullPath: '/bambino/nuovo'
+      preLoaderRoute: typeof AuthenticatedBambinoNuovoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedFamigliaRoute: typeof AuthenticatedFamigliaRoute
+  AuthenticatedParlaRoute: typeof AuthenticatedParlaRoute
+  AuthenticatedBambinoNuovoRoute: typeof AuthenticatedBambinoNuovoRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedFamigliaRoute: AuthenticatedFamigliaRoute,
+  AuthenticatedParlaRoute: AuthenticatedParlaRoute,
+  AuthenticatedBambinoNuovoRoute: AuthenticatedBambinoNuovoRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AscoltaRoute: AscoltaRoute,
+  AuthRoute: AuthRoute,
   CreaRoute: CreaRoute,
   GeneraRoute: GeneraRoute,
   LibreriaRoute: LibreriaRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  ApiSttRoute: ApiSttRoute,
   ApiTtsRoute: ApiTtsRoute,
 }
 export const routeTree = rootRouteImport
