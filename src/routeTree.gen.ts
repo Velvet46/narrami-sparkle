@@ -13,6 +13,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as LibreriaRouteImport } from './routes/libreria'
 import { Route as GeneraRouteImport } from './routes/genera'
 import { Route as CreaRouteImport } from './routes/crea'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AscoltaRouteImport } from './routes/ascolta'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiTtsRouteImport } from './routes/api/tts'
@@ -36,6 +37,11 @@ const GeneraRoute = GeneraRouteImport.update({
 const CreaRoute = CreaRouteImport.update({
   id: '/crea',
   path: '/crea',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AscoltaRoute = AscoltaRouteImport.update({
@@ -62,6 +68,7 @@ const ApiSttRoute = ApiSttRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/ascolta': typeof AscoltaRoute
+  '/auth': typeof AuthRoute
   '/crea': typeof CreaRoute
   '/genera': typeof GeneraRoute
   '/libreria': typeof LibreriaRoute
@@ -72,6 +79,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/ascolta': typeof AscoltaRoute
+  '/auth': typeof AuthRoute
   '/crea': typeof CreaRoute
   '/genera': typeof GeneraRoute
   '/libreria': typeof LibreriaRoute
@@ -83,6 +91,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/ascolta': typeof AscoltaRoute
+  '/auth': typeof AuthRoute
   '/crea': typeof CreaRoute
   '/genera': typeof GeneraRoute
   '/libreria': typeof LibreriaRoute
@@ -95,6 +104,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/ascolta'
+    | '/auth'
     | '/crea'
     | '/genera'
     | '/libreria'
@@ -105,6 +115,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/ascolta'
+    | '/auth'
     | '/crea'
     | '/genera'
     | '/libreria'
@@ -115,6 +126,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/ascolta'
+    | '/auth'
     | '/crea'
     | '/genera'
     | '/libreria'
@@ -126,6 +138,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AscoltaRoute: typeof AscoltaRoute
+  AuthRoute: typeof AuthRoute
   CreaRoute: typeof CreaRoute
   GeneraRoute: typeof GeneraRoute
   LibreriaRoute: typeof LibreriaRoute
@@ -164,6 +177,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CreaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ascolta': {
       id: '/ascolta'
       path: '/ascolta'
@@ -198,6 +218,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AscoltaRoute: AscoltaRoute,
+  AuthRoute: AuthRoute,
   CreaRoute: CreaRoute,
   GeneraRoute: GeneraRoute,
   LibreriaRoute: LibreriaRoute,
