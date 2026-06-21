@@ -63,6 +63,7 @@ function GeneratePage() {
 
     generateStory({ data: draft })
       .then((res) => {
+        const childId = typeof window !== "undefined" ? window.sessionStorage.getItem("millestorie:childId") || window.localStorage.getItem("millestorie:activeChildId") || undefined : undefined;
         const story: Story = {
           id: crypto.randomUUID(),
           title: res.title,
@@ -73,6 +74,7 @@ function GeneratePage() {
           age: draft.age,
           coverKey: pickCover(draft),
           createdAt: Date.now(),
+          childId: childId ?? undefined,
         };
         setCurrentStory(story);
         saveStoryToLibrary(story);
