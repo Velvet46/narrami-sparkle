@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Moon, Rocket, Sparkles, BookOpen, Play, ChevronRight, Mic, Users } from "lucide-react";
+import { Moon, Rocket, Sparkles, BookOpen, Play, ChevronRight, Mic, Users, Bluetooth } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { AppShell } from "@/components/AppShell";
@@ -7,6 +7,9 @@ import { StoryCover } from "@/components/StoryCover";
 import { getLibrary } from "@/lib/story-store";
 import { MODE_META, type Story, type StoryMode } from "@/lib/types";
 import { supabase } from "@/integrations/supabase/client";
+import { currentBand } from "@/lib/time-of-day";
+import { PuppetConnect } from "@/components/PuppetConnect";
+import { isPuppetConnected } from "@/lib/puppet";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -25,8 +28,12 @@ const MODES: StoryMode[] = ["nanna", "avventura", "magica", "educativa"];
 function Home() {
   const [recent, setRecent] = useState<Story[]>([]);
   const [authed, setAuthed] = useState(false);
+  const [showPuppet, setShowPuppet] = useState(false);
+  const [puppetOn, setPuppetOn] = useState(false);
+  const band = currentBand();
   useEffect(() => {
     setRecent(getLibrary().slice(0, 3));
+    setPuppetOn(isPuppetConnected());
     supabase.auth.getSession().then(({ data }) => setAuthed(!!data.session));
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setAuthed(!!s));
     return () => sub.subscription.unsubscribe();
@@ -58,14 +65,41 @@ function Home() {
 
       {/* Greeting */}
       <section className="mt-8">
-        <p className="text-sm font-medium uppercase tracking-widest text-celeste/80">Buonasera ✨</p>
+        <p className="text-sm font-medium uppercase tracking-widest text-celeste/80">{band.greeting}</p>
         <h1 className="mt-2 text-pretty text-[34px] font-bold leading-[1.05]">
-          Cosa vogliamo<br />sognare stasera?
+          {band.band === "notte" ? <>È ora della<br />ninna nanna</> :
+           band.band === "mattina" ? <>Che avventura<br />vivremo oggi?</> :
+           band.band === "sera" ? <>Cosa vogliamo<br />sognare stasera?</> :
+           <>Pronti a<br />ridere insieme?</>}
         </h1>
       </section>
 
+      {/* Puppet connect strip */}
+      {authed && (
+        <button
+          onClick={() => setShowPuppet(true)}
+          className={`mt-5 flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition-colors ${
+            puppetOn ? "border-giallo/40 bg-giallo/10" : "border-white/10 bg-white/5"
+          }`}
+        >
+          <span className="flex items-center gap-3">
+            <span className={`grid size-9 place-items-center rounded-full ${puppetOn ? "bg-giallo/30 text-giallo" : "bg-celeste/20 text-celeste"}`}>
+              <Bluetooth className="size-4" />
+            </span>
+            <span>
+              <span className="block text-sm font-semibold">{puppetOn ? "Puppet collegato" : "Collega Puppet"}</span>
+              <span className="block text-[11px] text-muted-foreground">
+                {puppetOn ? "La voce esce dalla cassa nel pupazzo" : "Manda la voce al pupazzo Bluetooth"}
+              </span>
+            </span>
+          </span>
+          <ChevronRight className="size-4 text-muted-foreground" />
+        </button>
+      )}
+
       {/* Voice CTA (primary if authed) */}
       {authed ? (
+        <>
         <Link
           to="/parla"
           className="group relative mt-8 block overflow-hidden rounded-[36px]"
@@ -90,6 +124,22 @@ function Home() {
             </div>
           </div>
         </Link>
+        <Link
+          to="/puppet"
+          className="mt-3 flex items-center justify-between rounded-2xl border border-viola/40 bg-viola/15 px-4 py-3.5 text-sm font-semibold"
+        >
+          <span className="flex items-center gap-3">
+            <span className="grid size-9 place-items-center rounded-full bg-viola/30 text-base">🧸</span>
+            <span>
+              <span className="block">Modalità Pupazzo</span>
+              <span className="block text-[11px] font-medium text-muted-foreground">
+                Schermo nero · storie a catena via Puppet · {band.label.toLowerCase()}
+              </span>
+            </span>
+          </span>
+          <ChevronRight className="size-4 text-muted-foreground" />
+        </Link>
+        </>
       ) : (
       <Link
         to="/crea"
@@ -123,6 +173,8 @@ function Home() {
         </div>
       </Link>
       )}
+
+      {showPuppet && <PuppetConnect onClose={() => { setShowPuppet(false); setPuppetOn(isPuppetConnected()); }} />}
 
       {!authed && (
         <Link to="/auth" className="glass mt-3 flex items-center justify-center gap-2 rounded-2xl py-3 text-xs font-semibold text-muted-foreground">
