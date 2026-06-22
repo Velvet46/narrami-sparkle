@@ -13,6 +13,7 @@ export interface StoryDraft {
   favoriteColor?: string;
   favoriteAnimal?: string;
   fearsToAvoid?: string;
+  toneHint?: string;
 }
 
 export interface Story {
