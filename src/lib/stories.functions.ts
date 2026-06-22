@@ -15,6 +15,7 @@ const DraftSchema = z.object({
   favoriteColor: z.string().max(40).optional(),
   favoriteAnimal: z.string().max(40).optional(),
   fearsToAvoid: z.string().max(160).optional(),
+  toneHint: z.string().max(400).optional(),
 });
 
 const MODE_TONE: Record<string, string> = {
@@ -41,6 +42,7 @@ ${d.favoriteColor ? `Un colore ricorrente nelle immagini: ${d.favoriteColor}` : 
 ${d.moral ? `Morale da trasmettere senza essere didascalica: ${d.moral}` : ""}
 ${d.moral ? "" : "Concludi con una piccola morale dolce, naturale, integrata nel finale (una o due frasi, mai didascalica)."}
 ${d.fearsToAvoid ? `EVITA assolutamente questi temi (paure del bambino): ${d.fearsToAvoid}` : ""}
+${d.toneHint ? `Adatta il tono al momento della giornata: ${d.toneHint}` : ""}
 
 Regole assolute di sicurezza per bambini:
 - Nessuna violenza, sangue, morte, paure profonde, perdita dei genitori, mostri spaventosi.

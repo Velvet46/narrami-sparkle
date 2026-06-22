@@ -1,10 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Plus, Mic, LogOut, Trash2, BookOpen } from "lucide-react";
+import { Plus, Mic, LogOut, Trash2, BookOpen, Bluetooth } from "lucide-react";
 
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { listChildren, deleteChild, type ChildProfile } from "@/lib/child-profiles.functions";
+import { PuppetConnect } from "@/components/PuppetConnect";
+import { isPuppetConnected } from "@/lib/puppet";
 
 export const Route = createFileRoute("/_authenticated/famiglia")({
   head: () => ({ meta: [{ title: "Famiglia · MilleStorie" }] }),
@@ -17,6 +19,8 @@ function FamilyPage() {
   const nav = useNavigate();
   const [children, setChildren] = useState<ChildProfile[] | null>(null);
   const [active, setActive] = useState<string | null>(null);
+  const [showPuppet, setShowPuppet] = useState(false);
+  const [puppetOn, setPuppetOn] = useState(false);
 
   async function refresh() {
     const list = await listChildren();
@@ -29,7 +33,7 @@ function FamilyPage() {
     }
   }
 
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => { refresh(); setPuppetOn(isPuppetConnected()); }, []);
 
   function pick(id: string) {
     setActive(id);
@@ -106,6 +110,30 @@ function FamilyPage() {
 
           {active && (
             <div className="mt-8 space-y-3">
+              <button
+                onClick={() => setShowPuppet(true)}
+                className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition-colors ${
+                  puppetOn ? "border-giallo/40 bg-giallo/10" : "border-white/10 bg-white/5"
+                }`}
+              >
+                <span className="flex items-center gap-3">
+                  <span className={`grid size-9 place-items-center rounded-full ${puppetOn ? "bg-giallo/30 text-giallo" : "bg-celeste/20 text-celeste"}`}>
+                    <Bluetooth className="size-4" />
+                  </span>
+                  <span className="text-sm font-semibold">
+                    {puppetOn ? "Puppet collegato" : "Collega Puppet"}
+                  </span>
+                </span>
+                <span className="text-[11px] text-muted-foreground">{puppetOn ? "Tocca per cambiare" : "Bluetooth"}</span>
+              </button>
+
+              <Link
+                to="/puppet"
+                className="flex items-center justify-center gap-3 rounded-3xl border border-viola/40 bg-viola/15 py-4 font-display text-base font-bold"
+              >
+                🧸 Modalità Pupazzo
+              </Link>
+
               <Link
                 to="/parla"
                 className="relative flex items-center justify-center gap-3 overflow-hidden rounded-3xl bg-[var(--gradient-sun)] py-5 font-display text-lg font-bold text-primary-foreground shadow-[0_10px_50px_var(--glow)]"
@@ -123,6 +151,8 @@ function FamilyPage() {
           )}
         </>
       )}
+
+      {showPuppet && <PuppetConnect onClose={() => { setShowPuppet(false); setPuppetOn(isPuppetConnected()); }} />}
     </AppShell>
   );
 }

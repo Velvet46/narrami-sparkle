@@ -19,6 +19,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiTtsRouteImport } from './routes/api/tts'
 import { Route as ApiSttRouteImport } from './routes/api/stt'
+import { Route as AuthenticatedPuppetRouteImport } from './routes/_authenticated/puppet'
 import { Route as AuthenticatedParlaRouteImport } from './routes/_authenticated/parla'
 import { Route as AuthenticatedFamigliaRouteImport } from './routes/_authenticated/famiglia'
 import { Route as AuthenticatedBambinoNuovoRouteImport } from './routes/_authenticated/bambino.nuovo'
@@ -72,6 +73,11 @@ const ApiSttRoute = ApiSttRouteImport.update({
   path: '/api/stt',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedPuppetRoute = AuthenticatedPuppetRouteImport.update({
+  id: '/puppet',
+  path: '/puppet',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedParlaRoute = AuthenticatedParlaRouteImport.update({
   id: '/parla',
   path: '/parla',
@@ -99,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/famiglia': typeof AuthenticatedFamigliaRoute
   '/parla': typeof AuthenticatedParlaRoute
+  '/puppet': typeof AuthenticatedPuppetRoute
   '/api/stt': typeof ApiSttRoute
   '/api/tts': typeof ApiTtsRoute
   '/bambino/nuovo': typeof AuthenticatedBambinoNuovoRoute
@@ -113,6 +120,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/famiglia': typeof AuthenticatedFamigliaRoute
   '/parla': typeof AuthenticatedParlaRoute
+  '/puppet': typeof AuthenticatedPuppetRoute
   '/api/stt': typeof ApiSttRoute
   '/api/tts': typeof ApiTtsRoute
   '/bambino/nuovo': typeof AuthenticatedBambinoNuovoRoute
@@ -129,6 +137,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/famiglia': typeof AuthenticatedFamigliaRoute
   '/_authenticated/parla': typeof AuthenticatedParlaRoute
+  '/_authenticated/puppet': typeof AuthenticatedPuppetRoute
   '/api/stt': typeof ApiSttRoute
   '/api/tts': typeof ApiTtsRoute
   '/_authenticated/bambino/nuovo': typeof AuthenticatedBambinoNuovoRoute
@@ -145,6 +154,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/famiglia'
     | '/parla'
+    | '/puppet'
     | '/api/stt'
     | '/api/tts'
     | '/bambino/nuovo'
@@ -159,6 +169,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/famiglia'
     | '/parla'
+    | '/puppet'
     | '/api/stt'
     | '/api/tts'
     | '/bambino/nuovo'
@@ -174,6 +185,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/_authenticated/famiglia'
     | '/_authenticated/parla'
+    | '/_authenticated/puppet'
     | '/api/stt'
     | '/api/tts'
     | '/_authenticated/bambino/nuovo'
@@ -264,6 +276,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSttRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/puppet': {
+      id: '/_authenticated/puppet'
+      path: '/puppet'
+      fullPath: '/puppet'
+      preLoaderRoute: typeof AuthenticatedPuppetRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/parla': {
       id: '/_authenticated/parla'
       path: '/parla'
@@ -291,12 +310,14 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedFamigliaRoute: typeof AuthenticatedFamigliaRoute
   AuthenticatedParlaRoute: typeof AuthenticatedParlaRoute
+  AuthenticatedPuppetRoute: typeof AuthenticatedPuppetRoute
   AuthenticatedBambinoNuovoRoute: typeof AuthenticatedBambinoNuovoRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFamigliaRoute: AuthenticatedFamigliaRoute,
   AuthenticatedParlaRoute: AuthenticatedParlaRoute,
+  AuthenticatedPuppetRoute: AuthenticatedPuppetRoute,
   AuthenticatedBambinoNuovoRoute: AuthenticatedBambinoNuovoRoute,
 }
 
@@ -318,13 +339,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
