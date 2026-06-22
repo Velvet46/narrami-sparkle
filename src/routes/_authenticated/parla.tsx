@@ -5,7 +5,8 @@ import { X, Mic } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { listChildren, type ChildProfile } from "@/lib/child-profiles.functions";
 import { getLibrary, setCurrentStory } from "@/lib/story-store";
-import type { StoryDraft, Story, StoryMode, Duration, AgeRange } from "@/lib/types";
+import type { StoryDraft, Story, StoryMode } from "@/lib/types";
+import { currentBand, defaultDurationForBand } from "@/lib/time-of-day";
 import { startRecording, transcribe, type RecorderHandle } from "@/lib/voice-recorder";
 import {
   speakAndWait,
@@ -35,12 +36,6 @@ function pickWorld(said: string): { mode: StoryMode; setting: string } {
   const n = said.toLowerCase();
   for (const k of Object.keys(WORLDS)) if (n.includes(k)) return WORLDS[k];
   return { mode: "magica", setting: "un mondo di sogni e meraviglia" };
-}
-
-function defaultDuration(age: AgeRange): Duration {
-  if (age === "3-5") return 5;
-  if (age === "6-8") return 10;
-  return 15;
 }
 
 function TalkPage() {
@@ -91,12 +86,13 @@ function TalkPage() {
 
       // Use first child's voice for the question voice (warmest default)
       const defaultVoice = (children[0].preferred_voice || "sage") as TtsVoice;
+      const band = currentBand();
 
       // 1) GREET + ask name (skip if only one child)
       let chosen: ChildProfile;
       if (children.length === 1) {
         chosen = children[0];
-        await say(`Ciao ${chosen.name}! Sono pronta a raccontarti una storia magica.`, (chosen.preferred_voice || "sage") as TtsVoice);
+        await say(band.opener(chosen.name), (chosen.preferred_voice || "sage") as TtsVoice);
       } else {
         await say("Ciao! Chi sta per ascoltare una storia stasera?", defaultVoice);
         let attempt = 0;
@@ -123,7 +119,7 @@ function TalkPage() {
           return;
         }
         chosen = match[0];
-        await say(`Bene ${chosen.name}!`, (chosen.preferred_voice || "sage") as TtsVoice);
+        await say(band.opener(chosen.name), (chosen.preferred_voice || "sage") as TtsVoice);
       }
 
       localStorage.setItem("millestorie:activeChildId", chosen.id);
@@ -167,11 +163,16 @@ function TalkPage() {
   }
 
   async function newStoryFlow(child: ChildProfile, voice: TtsVoice) {
+    const band = currentBand();
     await say("Di chi vuoi che parli la storia? Un animale, un personaggio, dimmi tu!", voice);
     const protagonistRaw = await listen(5000);
     const protagonist = sanitizeTheme(protagonistRaw) || child.favorite_animal || "una stellina coraggiosa";
 
-    await say("E in che mondo? Bosco, spazio, castello, mare o sorprendimi?", voice);
+    if (band.band === "notte") {
+      await say("Va bene, preparo la tua ninna nanna. Chiudi gli occhi…", voice);
+    } else {
+      await say("E in che mondo? Bosco, spazio, castello, mare o sorprendimi?", voice);
+    }
     const worldRaw = await listen(4500);
     const world = pickWorld(worldRaw);
 
@@ -180,12 +181,13 @@ function TalkPage() {
     const draft: StoryDraft = {
       protagonist,
       setting: world.setting,
-      mode: world.mode,
-      duration: defaultDuration(child.age_range),
+      mode: band.band === "notte" ? "nanna" : world.mode,
+      duration: defaultDurationForBand(child.age_range, band.band),
       age: child.age_range,
       favoriteAnimal: child.favorite_animal || undefined,
       favoriteColor: child.favorite_color || undefined,
       fearsToAvoid: child.fears || undefined,
+      toneHint: band.toneHint,
     };
     sessionStorage.setItem("millestorie:draft", JSON.stringify(draft));
     sessionStorage.setItem("millestorie:childId", child.id);
