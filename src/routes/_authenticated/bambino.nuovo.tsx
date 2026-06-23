@@ -1,9 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { AppShell } from "@/components/AppShell";
 import { createChild } from "@/lib/child-profiles.functions";
-import { CHARACTERS } from "@/lib/characters";
+import { listCharacters } from "@/lib/characters.functions";
+import { setCharacterCache, type PuppetCharacter } from "@/lib/characters";
+import { CharacterPicker } from "@/components/CharacterPicker";
 
 export const Route = createFileRoute("/_authenticated/bambino/nuovo")({
   head: () => ({ meta: [{ title: "Nuovo bambino · MilleStorie" }] }),
@@ -19,16 +21,31 @@ function NewChildPage() {
   const [color, setColor] = useState("");
   const [animal, setAnimal] = useState("");
   const [fears, setFears] = useState("");
-  const [characterId, setCharacterId] = useState<string>(CHARACTERS[0].id);
+  const [characters, setCharacters] = useState<PuppetCharacter[]>([]);
+  const [characterId, setCharacterId] = useState<string>("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    listCharacters().then((list) => {
+      const active = list.filter((c) => c.active);
+      setCharacters(active);
+      setCharacterCache(active);
+      if (active[0]) setCharacterId(active[0].id);
+    }).catch(() => {});
+  }, []);
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     setErr(null);
     try {
-      const character = CHARACTERS.find((c) => c.id === characterId) ?? CHARACTERS[0];
+      const character = characters.find((c) => c.id === characterId);
+      if (!character) {
+        setErr("Scegli un personaggio");
+        setBusy(false);
+        return;
+      }
       const c = await createChild({
         data: {
           name: name.trim(),
@@ -36,7 +53,7 @@ function NewChildPage() {
           favorite_color: color.trim() || null,
           favorite_animal: animal.trim() || null,
           fears: fears.trim() || null,
-          preferred_voice: character.voice,
+          preferred_voice: "sage",
           puppet_character: character.id,
         },
       });
@@ -101,38 +118,13 @@ function NewChildPage() {
 
         <Field label="Scegli il pupazzo compagno">
           <p className="-mt-1 mb-3 text-[11px] text-muted-foreground">
-            Ogni pupazzo ha la sua voce. Sarà lui a raccontare le storie al tuo bambino.
+            Ogni pupazzo ha la sua voce. Tocca ▶︎ per ascoltarla prima di scegliere.
           </p>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {CHARACTERS.map((c) => {
-              const selected = characterId === c.id;
-              return (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => setCharacterId(c.id)}
-                  className={`group relative overflow-hidden rounded-2xl border p-2 text-left transition-all ${
-                    selected
-                      ? "border-giallo bg-giallo/10 ring-2 ring-giallo"
-                      : "border-white/10 bg-white/5 hover:border-white/20"
-                  }`}
-                >
-                  <div className={`mb-2 flex aspect-square items-end justify-center overflow-hidden rounded-xl bg-gradient-to-b ${c.accent}`}>
-                    <img
-                      src={c.image}
-                      alt={c.name}
-                      loading="lazy"
-                      className="h-full w-full object-contain object-bottom drop-shadow-md"
-                    />
-                  </div>
-                  <p className="font-display text-sm font-bold leading-tight">{c.name}</p>
-                  <p className="mt-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
-                    {c.voiceLabel}
-                  </p>
-                </button>
-              );
-            })}
-          </div>
+          {characters.length === 0 ? (
+            <p className="text-xs text-muted-foreground">Caricamento personaggi…</p>
+          ) : (
+            <CharacterPicker characters={characters} value={characterId} onChange={setCharacterId} />
+          )}
         </Field>
 
         {err && <p className="text-xs text-rose-400">{err}</p>}
