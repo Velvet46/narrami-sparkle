@@ -3,7 +3,7 @@ import { useState } from "react";
 
 import { AppShell } from "@/components/AppShell";
 import { createChild } from "@/lib/child-profiles.functions";
-import { VOICE_OPTIONS } from "@/lib/tts-player";
+import { CHARACTERS } from "@/lib/characters";
 
 export const Route = createFileRoute("/_authenticated/bambino/nuovo")({
   head: () => ({ meta: [{ title: "Nuovo bambino · MilleStorie" }] }),
@@ -19,7 +19,7 @@ function NewChildPage() {
   const [color, setColor] = useState("");
   const [animal, setAnimal] = useState("");
   const [fears, setFears] = useState("");
-  const [voice, setVoice] = useState("sage");
+  const [characterId, setCharacterId] = useState<string>(CHARACTERS[0].id);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -28,6 +28,7 @@ function NewChildPage() {
     setBusy(true);
     setErr(null);
     try {
+      const character = CHARACTERS.find((c) => c.id === characterId) ?? CHARACTERS[0];
       const c = await createChild({
         data: {
           name: name.trim(),
@@ -35,7 +36,8 @@ function NewChildPage() {
           favorite_color: color.trim() || null,
           favorite_animal: animal.trim() || null,
           fears: fears.trim() || null,
-          preferred_voice: voice,
+          preferred_voice: character.voice,
+          puppet_character: character.id,
         },
       });
       localStorage.setItem("millestorie:activeChildId", c.id);
@@ -97,14 +99,39 @@ function NewChildPage() {
             className="glass w-full rounded-2xl px-4 py-3 text-sm outline-none" />
         </Field>
 
-        <Field label="Voce del narratore">
-          <div className="flex flex-wrap gap-2">
-            {VOICE_OPTIONS.map((v) => (
-              <button key={v.id} type="button" onClick={() => setVoice(v.id)}
-                className={`rounded-full px-4 py-2 text-xs font-bold ${
-                  voice === v.id ? "bg-giallo text-primary-foreground" : "glass text-muted-foreground"
-                }`}>{v.label}</button>
-            ))}
+        <Field label="Scegli il pupazzo compagno">
+          <p className="-mt-1 mb-3 text-[11px] text-muted-foreground">
+            Ogni pupazzo ha la sua voce. Sarà lui a raccontare le storie al tuo bambino.
+          </p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {CHARACTERS.map((c) => {
+              const selected = characterId === c.id;
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setCharacterId(c.id)}
+                  className={`group relative overflow-hidden rounded-2xl border p-2 text-left transition-all ${
+                    selected
+                      ? "border-giallo bg-giallo/10 ring-2 ring-giallo"
+                      : "border-white/10 bg-white/5 hover:border-white/20"
+                  }`}
+                >
+                  <div className={`mb-2 flex aspect-square items-end justify-center overflow-hidden rounded-xl bg-gradient-to-b ${c.accent}`}>
+                    <img
+                      src={c.image}
+                      alt={c.name}
+                      loading="lazy"
+                      className="h-full w-full object-contain object-bottom drop-shadow-md"
+                    />
+                  </div>
+                  <p className="font-display text-sm font-bold leading-tight">{c.name}</p>
+                  <p className="mt-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+                    {c.voiceLabel}
+                  </p>
+                </button>
+              );
+            })}
           </div>
         </Field>
 
