@@ -22,6 +22,7 @@ import { Route as ApiSttRouteImport } from './routes/api/stt'
 import { Route as AuthenticatedPuppetRouteImport } from './routes/_authenticated/puppet'
 import { Route as AuthenticatedParlaRouteImport } from './routes/_authenticated/parla'
 import { Route as AuthenticatedFamigliaRouteImport } from './routes/_authenticated/famiglia'
+import { Route as ApiElevenlabsPreviewRouteImport } from './routes/api/elevenlabs/preview'
 import { Route as AuthenticatedBambinoNuovoRouteImport } from './routes/_authenticated/bambino.nuovo'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -88,6 +89,11 @@ const AuthenticatedFamigliaRoute = AuthenticatedFamigliaRouteImport.update({
   path: '/famiglia',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiElevenlabsPreviewRoute = ApiElevenlabsPreviewRouteImport.update({
+  id: '/api/elevenlabs/preview',
+  path: '/api/elevenlabs/preview',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedBambinoNuovoRoute =
   AuthenticatedBambinoNuovoRouteImport.update({
     id: '/bambino/nuovo',
@@ -109,6 +115,7 @@ export interface FileRoutesByFullPath {
   '/api/stt': typeof ApiSttRoute
   '/api/tts': typeof ApiTtsRoute
   '/bambino/nuovo': typeof AuthenticatedBambinoNuovoRoute
+  '/api/elevenlabs/preview': typeof ApiElevenlabsPreviewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -124,6 +131,7 @@ export interface FileRoutesByTo {
   '/api/stt': typeof ApiSttRoute
   '/api/tts': typeof ApiTtsRoute
   '/bambino/nuovo': typeof AuthenticatedBambinoNuovoRoute
+  '/api/elevenlabs/preview': typeof ApiElevenlabsPreviewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -141,6 +149,7 @@ export interface FileRoutesById {
   '/api/stt': typeof ApiSttRoute
   '/api/tts': typeof ApiTtsRoute
   '/_authenticated/bambino/nuovo': typeof AuthenticatedBambinoNuovoRoute
+  '/api/elevenlabs/preview': typeof ApiElevenlabsPreviewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -158,6 +167,7 @@ export interface FileRouteTypes {
     | '/api/stt'
     | '/api/tts'
     | '/bambino/nuovo'
+    | '/api/elevenlabs/preview'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -173,6 +183,7 @@ export interface FileRouteTypes {
     | '/api/stt'
     | '/api/tts'
     | '/bambino/nuovo'
+    | '/api/elevenlabs/preview'
   id:
     | '__root__'
     | '/'
@@ -189,6 +200,7 @@ export interface FileRouteTypes {
     | '/api/stt'
     | '/api/tts'
     | '/_authenticated/bambino/nuovo'
+    | '/api/elevenlabs/preview'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -202,6 +214,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ApiSttRoute: typeof ApiSttRoute
   ApiTtsRoute: typeof ApiTtsRoute
+  ApiElevenlabsPreviewRoute: typeof ApiElevenlabsPreviewRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -297,6 +310,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFamigliaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/elevenlabs/preview': {
+      id: '/api/elevenlabs/preview'
+      path: '/api/elevenlabs/preview'
+      fullPath: '/api/elevenlabs/preview'
+      preLoaderRoute: typeof ApiElevenlabsPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/bambino/nuovo': {
       id: '/_authenticated/bambino/nuovo'
       path: '/bambino/nuovo'
@@ -335,6 +355,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ApiSttRoute: ApiSttRoute,
   ApiTtsRoute: ApiTtsRoute,
+  ApiElevenlabsPreviewRoute: ApiElevenlabsPreviewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
