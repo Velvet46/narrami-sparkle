@@ -1,13 +1,15 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Plus, Mic, LogOut, Trash2, BookOpen, Bluetooth } from "lucide-react";
+import { Plus, Mic, LogOut, Trash2, BookOpen, Bluetooth, Sparkles, Settings } from "lucide-react";
 
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
-import { listChildren, deleteChild, type ChildProfile } from "@/lib/child-profiles.functions";
+import { listChildren, deleteChild, updateChildCharacter, type ChildProfile } from "@/lib/child-profiles.functions";
 import { PuppetConnect } from "@/components/PuppetConnect";
 import { isPuppetConnected } from "@/lib/puppet";
-import { getCharacter } from "@/lib/characters";
+import { getCharacter, setCharacterCache, type PuppetCharacter } from "@/lib/characters";
+import { listCharacters, isAdmin } from "@/lib/characters.functions";
+import { CharacterPicker } from "@/components/CharacterPicker";
 
 export const Route = createFileRoute("/_authenticated/famiglia")({
   head: () => ({ meta: [{ title: "Famiglia · MilleStorie" }] }),
@@ -22,6 +24,9 @@ function FamilyPage() {
   const [active, setActive] = useState<string | null>(null);
   const [showPuppet, setShowPuppet] = useState(false);
   const [puppetOn, setPuppetOn] = useState(false);
+  const [characters, setCharacters] = useState<PuppetCharacter[]>([]);
+  const [admin, setAdmin] = useState(false);
+  const [changeFor, setChangeFor] = useState<ChildProfile | null>(null);
 
   async function refresh() {
     const list = await listChildren();
@@ -34,7 +39,16 @@ function FamilyPage() {
     }
   }
 
-  useEffect(() => { refresh(); setPuppetOn(isPuppetConnected()); }, []);
+  useEffect(() => {
+    refresh();
+    setPuppetOn(isPuppetConnected());
+    listCharacters().then((list) => {
+      const active = list.filter((c) => c.active);
+      setCharacters(active);
+      setCharacterCache(active);
+    }).catch(() => {});
+    isAdmin().then(setAdmin).catch(() => {});
+  }, []);
 
   function pick(id: string) {
     setActive(id);
@@ -45,6 +59,12 @@ function FamilyPage() {
     if (!confirm("Eliminare questo profilo?")) return;
     await deleteChild({ data: { id } });
     if (active === id) localStorage.removeItem(ACTIVE_KEY);
+    refresh();
+  }
+
+  async function changeCharacter(child: ChildProfile, slug: string) {
+    await updateChildCharacter({ data: { id: child.id, puppet_character: slug } });
+    setChangeFor(null);
     refresh();
   }
 
@@ -60,9 +80,16 @@ function FamilyPage() {
           <p className="text-[11px] font-bold uppercase tracking-widest text-celeste">Famiglia</p>
           <h1 className="mt-1 font-display text-2xl font-bold">I tuoi bambini</h1>
         </div>
-        <button onClick={signOut} aria-label="Esci" className="glass grid size-10 place-items-center rounded-full">
-          <LogOut className="size-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          {admin && (
+            <Link to="/admin/personaggi" aria-label="Personaggi" className="glass grid size-10 place-items-center rounded-full">
+              <Settings className="size-4" />
+            </Link>
+          )}
+          <button onClick={signOut} aria-label="Esci" className="glass grid size-10 place-items-center rounded-full">
+            <LogOut className="size-4" />
+          </button>
+        </div>
       </header>
 
       {children === null ? (
@@ -106,6 +133,9 @@ function FamilyPage() {
                       {c.age_range} anni{getCharacter(c.puppet_character) ? ` · ${getCharacter(c.puppet_character)!.name}` : ` · voce ${c.preferred_voice}`}
                     </p>
                   </div>
+                </button>
+                <button onClick={() => setChangeFor(c)} aria-label="Cambia personaggio" className="grid size-9 place-items-center rounded-full text-celeste">
+                  <Sparkles className="size-4" />
                 </button>
                 <button onClick={() => remove(c.id)} aria-label="Elimina" className="grid size-9 place-items-center rounded-full text-muted-foreground">
                   <Trash2 className="size-4" />
@@ -163,6 +193,30 @@ function FamilyPage() {
       )}
 
       {showPuppet && <PuppetConnect onClose={() => { setShowPuppet(false); setPuppetOn(isPuppetConnected()); }} />}
+
+      {changeFor && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center" onClick={() => setChangeFor(null)}>
+          <div className="glass-strong w-full max-w-md rounded-3xl p-5" onClick={(e) => e.stopPropagation()}>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-celeste">Cambia personaggio</p>
+            <h2 className="mt-1 font-display text-xl font-bold">Voce per {changeFor.name}</h2>
+            <p className="mt-1 text-xs text-muted-foreground">Tocca ▶︎ per ascoltare la voce, poi scegli.</p>
+            <div className="mt-4 max-h-[60vh] overflow-y-auto">
+              {characters.length === 0 ? (
+                <p className="text-xs text-muted-foreground">Caricamento…</p>
+              ) : (
+                <CharacterPicker
+                  characters={characters}
+                  value={changeFor.puppet_character}
+                  onChange={(slug) => changeCharacter(changeFor, slug)}
+                />
+              )}
+            </div>
+            <button onClick={() => setChangeFor(null)} className="mt-4 w-full rounded-2xl border border-white/10 py-3 text-sm font-semibold">
+              Chiudi
+            </button>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }
