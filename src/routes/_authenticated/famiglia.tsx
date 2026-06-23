@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { listChildren, deleteChild, type ChildProfile } from "@/lib/child-profiles.functions";
 import { PuppetConnect } from "@/components/PuppetConnect";
 import { isPuppetConnected } from "@/lib/puppet";
+import { getCharacter } from "@/lib/characters";
 
 export const Route = createFileRoute("/_authenticated/famiglia")({
   head: () => ({ meta: [{ title: "Famiglia · MilleStorie" }] }),
@@ -87,13 +88,22 @@ function FamilyPage() {
                 }`}
               >
                 <button onClick={() => pick(c.id)} className="flex flex-1 items-center gap-3 text-left">
-                  <span className="grid size-12 place-items-center rounded-2xl bg-celeste/30 font-display text-xl font-bold">
-                    {c.name[0]?.toUpperCase()}
-                  </span>
+                  {(() => {
+                    const ch = getCharacter(c.puppet_character);
+                    return ch ? (
+                      <span className={`grid size-14 place-items-end overflow-hidden rounded-2xl bg-gradient-to-b ${ch.accent}`}>
+                        <img src={ch.image} alt={ch.name} className="h-full w-full object-contain object-bottom" />
+                      </span>
+                    ) : (
+                      <span className="grid size-14 place-items-center rounded-2xl bg-celeste/30 font-display text-xl font-bold">
+                        {c.name[0]?.toUpperCase()}
+                      </span>
+                    );
+                  })()}
                   <div className="min-w-0">
                     <p className="font-display font-bold">{c.name}</p>
                     <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                      {c.age_range} anni · voce {c.preferred_voice}
+                      {c.age_range} anni{getCharacter(c.puppet_character) ? ` · ${getCharacter(c.puppet_character)!.name}` : ` · voce ${c.preferred_voice}`}
                     </p>
                   </div>
                 </button>
