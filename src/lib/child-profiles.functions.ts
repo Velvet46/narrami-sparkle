@@ -58,3 +58,20 @@ export const deleteChild = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+const UpdateCharSchema = z.object({
+  id: z.string().uuid(),
+  puppet_character: z.string().min(1).max(40),
+});
+
+export const updateChildCharacter = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => UpdateCharSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("child_profiles")
+      .update({ puppet_character: data.puppet_character })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
