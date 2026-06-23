@@ -25,6 +25,7 @@ export type Database = {
           name: string
           parent_id: string
           preferred_voice: string
+          puppet_character: string | null
         }
         Insert: {
           age_range: string
@@ -36,6 +37,7 @@ export type Database = {
           name: string
           parent_id: string
           preferred_voice?: string
+          puppet_character?: string | null
         }
         Update: {
           age_range?: string
@@ -47,6 +49,7 @@ export type Database = {
           name?: string
           parent_id?: string
           preferred_voice?: string
+          puppet_character?: string | null
         }
         Relationships: []
       }
