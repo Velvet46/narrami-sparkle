@@ -61,7 +61,7 @@ function GeneratePage() {
     }
     const draft = JSON.parse(raw) as StoryDraft;
 
-    generateStory({ data: draft })
+    generateStory({ data: { ...draft, language: draft.language ?? "it" } })
       .then((res) => {
         const childId = typeof window !== "undefined" ? window.sessionStorage.getItem("millestorie:childId") || window.localStorage.getItem("millestorie:activeChildId") || undefined : undefined;
         const story: Story = {

@@ -3,9 +3,11 @@ import { useEffect, useState } from "react";
 
 import { AppShell } from "@/components/AppShell";
 import { createChild } from "@/lib/child-profiles.functions";
+import type { ChildGender, ChildLanguage } from "@/lib/child-profiles.functions";
 import { listCharacters } from "@/lib/characters.functions";
 import { setCharacterCache, type PuppetCharacter } from "@/lib/characters";
 import { CharacterPicker } from "@/components/CharacterPicker";
+import { LANGUAGES } from "@/lib/types";
 
 export const Route = createFileRoute("/_authenticated/bambino/nuovo")({
   head: () => ({ meta: [{ title: "Nuovo bambino · MilleStorie" }] }),
@@ -21,6 +23,8 @@ function NewChildPage() {
   const [color, setColor] = useState("");
   const [animal, setAnimal] = useState("");
   const [fears, setFears] = useState("");
+  const [gender, setGender] = useState<ChildGender>("n");
+  const [language, setLanguage] = useState<ChildLanguage>("it");
   const [characters, setCharacters] = useState<PuppetCharacter[]>([]);
   const [characterId, setCharacterId] = useState<string>("");
   const [busy, setBusy] = useState(false);
@@ -55,6 +59,8 @@ function NewChildPage() {
           fears: fears.trim() || null,
           preferred_voice: "sage",
           puppet_character: character.id,
+          gender,
+          language,
         },
       });
       localStorage.setItem("millestorie:activeChildId", c.id);
@@ -93,6 +99,36 @@ function NewChildPage() {
                 className={`rounded-2xl py-3 text-sm font-bold ${
                   age === a ? "bg-giallo text-primary-foreground" : "glass text-muted-foreground"
                 }`}>{a}</button>
+            ))}
+          </div>
+        </Field>
+
+        <Field label="Maschio o femmina?">
+          <div className="grid grid-cols-3 gap-2">
+            {([
+              { v: "m" as const, label: "👦 Maschio", on: "bg-sky-400 text-primary-foreground" },
+              { v: "f" as const, label: "👧 Femmina", on: "bg-pink-400 text-primary-foreground" },
+              { v: "n" as const, label: "✨ Altro",   on: "bg-giallo text-primary-foreground" },
+            ]).map((g) => (
+              <button key={g.v} type="button" onClick={() => setGender(g.v)}
+                className={`rounded-2xl py-3 text-sm font-bold ${gender === g.v ? g.on : "glass text-muted-foreground"}`}>
+                {g.label}
+              </button>
+            ))}
+          </div>
+        </Field>
+
+        <Field label="Lingua delle storie">
+          <div className="grid grid-cols-5 gap-2">
+            {LANGUAGES.map((l) => (
+              <button key={l.code} type="button" onClick={() => setLanguage(l.code)}
+                aria-label={l.label}
+                className={`flex flex-col items-center gap-1 rounded-2xl py-2 text-[10px] font-bold ${
+                  language === l.code ? "bg-celeste text-primary-foreground" : "glass text-muted-foreground"
+                }`}>
+                <span className="text-xl leading-none">{l.flag}</span>
+                <span>{l.code.toUpperCase()}</span>
+              </button>
             ))}
           </div>
         </Field>
