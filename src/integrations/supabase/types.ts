@@ -69,7 +69,9 @@ export type Database = {
           favorite_animal: string | null
           favorite_color: string | null
           fears: string | null
+          gender: string
           id: string
+          language: string
           name: string
           parent_id: string
           preferred_voice: string
@@ -81,7 +83,9 @@ export type Database = {
           favorite_animal?: string | null
           favorite_color?: string | null
           fears?: string | null
+          gender?: string
           id?: string
+          language?: string
           name: string
           parent_id: string
           preferred_voice?: string
@@ -93,7 +97,9 @@ export type Database = {
           favorite_animal?: string | null
           favorite_color?: string | null
           fears?: string | null
+          gender?: string
           id?: string
+          language?: string
           name?: string
           parent_id?: string
           preferred_voice?: string

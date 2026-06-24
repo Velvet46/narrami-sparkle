@@ -16,9 +16,10 @@ const DraftSchema = z.object({
   favoriteAnimal: z.string().max(40).optional(),
   fearsToAvoid: z.string().max(160).optional(),
   toneHint: z.string().max(400).optional(),
+  language: z.enum(["it", "en", "es", "fr", "de"]).optional().default("it"),
 });
 
-const MODE_TONE: Record<string, string> = {
+const MODE_TONE_IT: Record<string, string> = {
   nanna: "calmo, dolce, ipnotico, ritmato come una ninna nanna; finale rassicurante che induce al sonno",
   avventura: "vivace, eroico, con momenti di scoperta e coraggio; un colpo di scena luminoso",
   magica: "stupefacente, evocativo, pieno di incantesimi e meraviglia; immagini brillanti",
@@ -26,12 +27,22 @@ const MODE_TONE: Record<string, string> = {
   divertente: "giocoso, leggero, con dialoghi spiritosi e situazioni buffe",
 };
 
+const LANG_META: Record<string, { name: string; titleLabel: string; subtitleLabel: string }> = {
+  it: { name: "italiano", titleLabel: "TITOLO",   subtitleLabel: "SOTTOTITOLO" },
+  en: { name: "English",  titleLabel: "TITLE",    subtitleLabel: "SUBTITLE" },
+  es: { name: "español",  titleLabel: "TÍTULO",   subtitleLabel: "SUBTÍTULO" },
+  fr: { name: "français", titleLabel: "TITRE",    subtitleLabel: "SOUS-TITRE" },
+  de: { name: "Deutsch",  titleLabel: "TITEL",    subtitleLabel: "UNTERTITEL" },
+};
+
 const WORDS_PER_MINUTE = 130; // narrazione lenta per bambini
 
 function buildPrompt(d: z.infer<typeof DraftSchema>) {
   const targetWords = d.duration * WORDS_PER_MINUTE;
-  const tone = MODE_TONE[d.mode];
-  return `Scrivi una fiaba originale in italiano per bambini di ${d.age} anni.
+  const tone = MODE_TONE_IT[d.mode];
+  const lang = LANG_META[d.language] ?? LANG_META.it;
+  return `Write an original fairy tale for children aged ${d.age}.
+OUTPUT LANGUAGE: ${lang.name} — the title, subtitle and full story MUST be written entirely in ${lang.name}. Do not mix languages.
 
 Protagonista: ${d.protagonist}
 Ambientazione: ${d.setting}
@@ -55,11 +66,11 @@ Struttura: apertura accogliente, sviluppo con una piccola sfida, scoperta magica
 
 Lunghezza target: circa ${targetWords} parole (${d.duration} minuti di narrazione lenta).
 
-Formato di output (RIGOROSO):
-TITOLO: <titolo evocativo e magico, max 6 parole>
-SOTTOTITOLO: <una frase poetica, max 12 parole>
+Strict output format (keep these exact labels in uppercase, in ${lang.name} as shown):
+${lang.titleLabel}: <evocative magical title, max 6 words, in ${lang.name}>
+${lang.subtitleLabel}: <one poetic sentence, max 12 words, in ${lang.name}>
 ---
-<testo della storia, in paragrafi brevi separati da righe vuote>`;
+<full story body in ${lang.name}, short paragraphs separated by blank lines>`;
 }
 
 export const generateStory = createServerFn({ method: "POST" })
@@ -77,14 +88,14 @@ export const generateStory = createServerFn({ method: "POST" })
       temperature: 0.95,
     });
 
-    const titleMatch = text.match(/TITOLO:\s*(.+)/i);
-    const subtitleMatch = text.match(/SOTTOTITOLO:\s*(.+)/i);
+    const titleMatch = text.match(/^(?:TITOLO|TITLE|TÍTULO|TITULO|TITRE|TITEL)\s*:\s*(.+)/im);
+    const subtitleMatch = text.match(/^(?:SOTTOTITOLO|SUBTITLE|SUBT[IÍ]TULO|SOUS[- ]TITRE|UNTERTITEL)\s*:\s*(.+)/im);
     const splitIdx = text.indexOf("---");
     const content = splitIdx >= 0 ? text.slice(splitIdx + 3).trim() : text.trim();
 
     return {
-      title: (titleMatch?.[1] ?? "Una storia magica").trim(),
-      subtitle: (subtitleMatch?.[1] ?? "Per i tuoi sogni").trim(),
+      title: (titleMatch?.[1] ?? "✨").trim(),
+      subtitle: (subtitleMatch?.[1] ?? "").trim(),
       content,
     };
   });

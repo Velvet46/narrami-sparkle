@@ -5,6 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { generateStory } from "@/lib/stories.functions";
 import { saveStoryToLibrary, setCurrentStory } from "@/lib/story-store";
 import type { Story, StoryDraft } from "@/lib/types";
+import { listChildren } from "@/lib/child-profiles.functions";
 
 export const Route = createFileRoute("/genera")({
   head: () => ({
@@ -61,9 +62,23 @@ function GeneratePage() {
     }
     const draft = JSON.parse(raw) as StoryDraft;
 
-    generateStory({ data: draft })
+    const childId = typeof window !== "undefined"
+      ? window.sessionStorage.getItem("millestorie:childId") ||
+        window.localStorage.getItem("millestorie:activeChildId") || undefined
+      : undefined;
+
+    (async () => {
+      let language = draft.language ?? "it";
+      if (childId) {
+        try {
+          const list = await listChildren();
+          const c = list.find((x) => x.id === childId);
+          if (c?.language) language = c.language;
+        } catch { /* ignore */ }
+      }
+      return generateStory({ data: { ...draft, language } });
+    })()
       .then((res) => {
-        const childId = typeof window !== "undefined" ? window.sessionStorage.getItem("millestorie:childId") || window.localStorage.getItem("millestorie:activeChildId") || undefined : undefined;
         const story: Story = {
           id: crypto.randomUUID(),
           title: res.title,

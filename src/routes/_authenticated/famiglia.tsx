@@ -4,12 +4,19 @@ import { Plus, Mic, LogOut, Trash2, BookOpen, Bluetooth, Sparkles, Settings } fr
 
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
-import { listChildren, deleteChild, updateChildCharacter, type ChildProfile } from "@/lib/child-profiles.functions";
+import { listChildren, deleteChild, updateChildCharacter, updateChildPrefs, type ChildProfile } from "@/lib/child-profiles.functions";
 import { PuppetConnect } from "@/components/PuppetConnect";
 import { isPuppetConnected } from "@/lib/puppet";
 import { getCharacter, setCharacterCache, type PuppetCharacter } from "@/lib/characters";
 import { listCharacters, isAdmin } from "@/lib/characters.functions";
 import { CharacterPicker } from "@/components/CharacterPicker";
+import { LANGUAGES, type Language } from "@/lib/types";
+
+function genderAccent(g: ChildProfile["gender"]) {
+  if (g === "f") return { ring: "ring-pink-400", chip: "bg-pink-400/80 text-primary-foreground", bg: "from-pink-300/50 to-pink-500/10" };
+  if (g === "m") return { ring: "ring-sky-400",  chip: "bg-sky-400/80 text-primary-foreground",  bg: "from-sky-300/50 to-sky-500/10" };
+  return { ring: "ring-giallo", chip: "bg-giallo/80 text-primary-foreground", bg: "from-giallo/40 to-celeste/10" };
+}
 
 export const Route = createFileRoute("/_authenticated/famiglia")({
   head: () => ({ meta: [{ title: "Famiglia · MilleStorie" }] }),
@@ -27,6 +34,7 @@ function FamilyPage() {
   const [characters, setCharacters] = useState<PuppetCharacter[]>([]);
   const [admin, setAdmin] = useState(false);
   const [changeFor, setChangeFor] = useState<ChildProfile | null>(null);
+  const [langFor, setLangFor] = useState<ChildProfile | null>(null);
 
   async function refresh() {
     const list = await listChildren();
@@ -65,6 +73,12 @@ function FamilyPage() {
   async function changeCharacter(child: ChildProfile, slug: string) {
     await updateChildCharacter({ data: { id: child.id, puppet_character: slug } });
     setChangeFor(null);
+    refresh();
+  }
+
+  async function setChildLang(child: ChildProfile, language: Language) {
+    await updateChildPrefs({ data: { id: child.id, language } });
+    setLangFor(null);
     refresh();
   }
 
@@ -108,31 +122,41 @@ function FamilyPage() {
         <>
           <ul className="mt-6 space-y-3">
             {children.map((c) => (
+              (() => { const accent = genderAccent(c.gender); return (
               <li
                 key={c.id}
                 className={`glass flex items-center gap-3 rounded-3xl p-3 transition-colors ${
-                  active === c.id ? "ring-2 ring-giallo" : ""
+                  active === c.id ? `ring-2 ${accent.ring}` : ""
                 }`}
               >
                 <button onClick={() => pick(c.id)} className="flex flex-1 items-center gap-3 text-left">
                   {(() => {
                     const ch = getCharacter(c.puppet_character);
                     return ch ? (
-                      <span className={`grid size-14 place-items-end overflow-hidden rounded-2xl bg-gradient-to-b ${ch.accent}`}>
+                      <span className={`grid size-14 place-items-end overflow-hidden rounded-2xl bg-gradient-to-b ${accent.bg}`}>
                         <img src={ch.image} alt={ch.name} className="h-full w-full object-contain object-bottom" />
                       </span>
                     ) : (
-                      <span className="grid size-14 place-items-center rounded-2xl bg-celeste/30 font-display text-xl font-bold">
+                      <span className={`grid size-14 place-items-center rounded-2xl bg-gradient-to-b ${accent.bg} font-display text-xl font-bold`}>
                         {c.name[0]?.toUpperCase()}
                       </span>
                     );
                   })()}
                   <div className="min-w-0">
-                    <p className="font-display font-bold">{c.name}</p>
+                    <p className="flex items-center gap-2 font-display font-bold">
+                      {c.name}
+                      <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase ${accent.chip}`}>
+                        {c.gender === "f" ? "F" : c.gender === "m" ? "M" : "·"}
+                      </span>
+                    </p>
                     <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                      {c.age_range} anni{getCharacter(c.puppet_character) ? ` · ${getCharacter(c.puppet_character)!.name}` : ` · voce ${c.preferred_voice}`}
+                      {c.age_range} anni · {(LANGUAGES.find((l) => l.code === c.language)?.flag) ?? "🇮🇹"} {c.language.toUpperCase()}
+                      {getCharacter(c.puppet_character) ? ` · ${getCharacter(c.puppet_character)!.name}` : ""}
                     </p>
                   </div>
+                </button>
+                <button onClick={() => setLangFor(c)} aria-label="Lingua" className="grid size-9 place-items-center rounded-full text-xl">
+                  {(LANGUAGES.find((l) => l.code === c.language)?.flag) ?? "🌐"}
                 </button>
                 <button onClick={() => setChangeFor(c)} aria-label="Cambia personaggio" className="grid size-9 place-items-center rounded-full text-celeste">
                   <Sparkles className="size-4" />
@@ -141,6 +165,7 @@ function FamilyPage() {
                   <Trash2 className="size-4" />
                 </button>
               </li>
+              ); })()
             ))}
           </ul>
 
@@ -212,6 +237,28 @@ function FamilyPage() {
               )}
             </div>
             <button onClick={() => setChangeFor(null)} className="mt-4 w-full rounded-2xl border border-white/10 py-3 text-sm font-semibold">
+              Chiudi
+            </button>
+          </div>
+        </div>
+      )}
+
+      {langFor && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center" onClick={() => setLangFor(null)}>
+          <div className="glass-strong w-full max-w-md rounded-3xl p-5" onClick={(e) => e.stopPropagation()}>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-celeste">Lingua delle storie</p>
+            <h2 className="mt-1 font-display text-xl font-bold">In che lingua per {langFor.name}?</h2>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              {LANGUAGES.map((l) => (
+                <button key={l.code} onClick={() => setChildLang(langFor, l.code)}
+                  className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-semibold ${
+                    langFor.language === l.code ? "bg-celeste text-primary-foreground" : "glass"
+                  }`}>
+                  <span className="text-2xl">{l.flag}</span> {l.label}
+                </button>
+              ))}
+            </div>
+            <button onClick={() => setLangFor(null)} className="mt-4 w-full rounded-2xl border border-white/10 py-3 text-sm font-semibold">
               Chiudi
             </button>
           </div>
