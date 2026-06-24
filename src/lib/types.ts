@@ -1,6 +1,14 @@
 export type StoryMode = "nanna" | "avventura" | "magica" | "educativa" | "divertente";
 export type AgeRange = "3-5" | "6-8" | "9-12";
 export type Duration = 3 | 5 | 10 | 15;
+export type Language = "it" | "en" | "es" | "fr" | "de";
+export const LANGUAGES: { code: Language; label: string; flag: string }[] = [
+  { code: "it", label: "Italiano", flag: "🇮🇹" },
+  { code: "en", label: "English",  flag: "🇬🇧" },
+  { code: "es", label: "Español",  flag: "🇪🇸" },
+  { code: "fr", label: "Français", flag: "🇫🇷" },
+  { code: "de", label: "Deutsch",  flag: "🇩🇪" },
+];
 
 export interface StoryDraft {
   protagonist: string;
@@ -14,6 +22,7 @@ export interface StoryDraft {
   favoriteAnimal?: string;
   fearsToAvoid?: string;
   toneHint?: string;
+  language?: Language;
 }
 
 export interface Story {
