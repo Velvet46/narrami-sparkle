@@ -9,6 +9,8 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WaltDashboardRouteImport } from './routes/walt-dashboard'
+import { Route as WaltRouteImport } from './routes/walt'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as LibreriaRouteImport } from './routes/libreria'
 import { Route as GeneraRouteImport } from './routes/genera'
@@ -26,6 +28,16 @@ import { Route as ApiElevenlabsPreviewRouteImport } from './routes/api/elevenlab
 import { Route as AuthenticatedBambinoNuovoRouteImport } from './routes/_authenticated/bambino.nuovo'
 import { Route as AuthenticatedAdminPersonaggiRouteImport } from './routes/_authenticated/admin.personaggi'
 
+const WaltDashboardRoute = WaltDashboardRouteImport.update({
+  id: '/walt-dashboard',
+  path: '/walt-dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WaltRoute = WaltRouteImport.update({
+  id: '/walt',
+  path: '/walt',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
@@ -116,6 +128,8 @@ export interface FileRoutesByFullPath {
   '/genera': typeof GeneraRoute
   '/libreria': typeof LibreriaRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/walt': typeof WaltRoute
+  '/walt-dashboard': typeof WaltDashboardRoute
   '/famiglia': typeof AuthenticatedFamigliaRoute
   '/parla': typeof AuthenticatedParlaRoute
   '/puppet': typeof AuthenticatedPuppetRoute
@@ -133,6 +147,8 @@ export interface FileRoutesByTo {
   '/genera': typeof GeneraRoute
   '/libreria': typeof LibreriaRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/walt': typeof WaltRoute
+  '/walt-dashboard': typeof WaltDashboardRoute
   '/famiglia': typeof AuthenticatedFamigliaRoute
   '/parla': typeof AuthenticatedParlaRoute
   '/puppet': typeof AuthenticatedPuppetRoute
@@ -152,6 +168,8 @@ export interface FileRoutesById {
   '/genera': typeof GeneraRoute
   '/libreria': typeof LibreriaRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/walt': typeof WaltRoute
+  '/walt-dashboard': typeof WaltDashboardRoute
   '/_authenticated/famiglia': typeof AuthenticatedFamigliaRoute
   '/_authenticated/parla': typeof AuthenticatedParlaRoute
   '/_authenticated/puppet': typeof AuthenticatedPuppetRoute
@@ -171,6 +189,8 @@ export interface FileRouteTypes {
     | '/genera'
     | '/libreria'
     | '/sitemap.xml'
+    | '/walt'
+    | '/walt-dashboard'
     | '/famiglia'
     | '/parla'
     | '/puppet'
@@ -188,6 +208,8 @@ export interface FileRouteTypes {
     | '/genera'
     | '/libreria'
     | '/sitemap.xml'
+    | '/walt'
+    | '/walt-dashboard'
     | '/famiglia'
     | '/parla'
     | '/puppet'
@@ -206,6 +228,8 @@ export interface FileRouteTypes {
     | '/genera'
     | '/libreria'
     | '/sitemap.xml'
+    | '/walt'
+    | '/walt-dashboard'
     | '/_authenticated/famiglia'
     | '/_authenticated/parla'
     | '/_authenticated/puppet'
@@ -225,6 +249,8 @@ export interface RootRouteChildren {
   GeneraRoute: typeof GeneraRoute
   LibreriaRoute: typeof LibreriaRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  WaltRoute: typeof WaltRoute
+  WaltDashboardRoute: typeof WaltDashboardRoute
   ApiSttRoute: typeof ApiSttRoute
   ApiTtsRoute: typeof ApiTtsRoute
   ApiElevenlabsPreviewRoute: typeof ApiElevenlabsPreviewRoute
@@ -232,6 +258,20 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/walt-dashboard': {
+      id: '/walt-dashboard'
+      path: '/walt-dashboard'
+      fullPath: '/walt-dashboard'
+      preLoaderRoute: typeof WaltDashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/walt': {
+      id: '/walt'
+      path: '/walt'
+      fullPath: '/walt'
+      preLoaderRoute: typeof WaltRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sitemap.xml': {
       id: '/sitemap.xml'
       path: '/sitemap.xml'
@@ -375,6 +415,8 @@ const rootRouteChildren: RootRouteChildren = {
   GeneraRoute: GeneraRoute,
   LibreriaRoute: LibreriaRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  WaltRoute: WaltRoute,
+  WaltDashboardRoute: WaltDashboardRoute,
   ApiSttRoute: ApiSttRoute,
   ApiTtsRoute: ApiTtsRoute,
   ApiElevenlabsPreviewRoute: ApiElevenlabsPreviewRoute,
