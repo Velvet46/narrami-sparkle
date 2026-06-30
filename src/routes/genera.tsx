@@ -3,8 +3,8 @@ import { useEffect, useRef, useState } from "react";
 
 import { AppShell } from "@/components/AppShell";
 import { generateStory } from "@/lib/stories.functions";
-import { saveStoryToLibrary, setCurrentStory } from "@/lib/story-store";
-import type { Story, StoryDraft } from "@/lib/types";
+
+import type { StoryDraft } from "@/lib/types";
 import { listChildren } from "@/lib/child-profiles.functions";
 
 export const Route = createFileRoute("/genera")({
@@ -24,18 +24,12 @@ const PHRASES = [
   "Il libro si sta aprendo…",
 ];
 
-function pickCover(draft: StoryDraft): Story["coverKey"] {
-  const t = `${draft.protagonist} ${draft.setting}`.toLowerCase();
-  if (/drago|moon|luna|notte|nanna/.test(t) || draft.mode === "nanna") return "dragon";
-  if (/spazio|stell|pianeta|astro/.test(t)) return "space";
-  return "forest";
-}
-
 function GeneratePage() {
   const navigate = useNavigate();
   const [phraseIdx, setPhraseIdx] = useState(0);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [needsAuth, setNeedsAuth] = useState(false);
   const started = useRef(false);
 
   useEffect(() => {
@@ -44,7 +38,6 @@ function GeneratePage() {
   }, []);
 
   useEffect(() => {
-    // Fake progress that eases toward 90% while waiting
     const t = setInterval(() => {
       setProgress((p) => (p < 92 ? p + (92 - p) * 0.04 : p));
     }, 200);
@@ -76,36 +69,23 @@ function GeneratePage() {
           if (c?.language) language = c.language;
         } catch { /* ignore */ }
       }
-      return generateStory({ data: { ...draft, language } });
+      return generateStory({ data: { ...draft, language, childId } });
     })()
       .then((res) => {
-        const story: Story = {
-          id: crypto.randomUUID(),
-          title: res.title,
-          subtitle: res.subtitle,
-          content: res.content,
-          mode: draft.mode,
-          duration: draft.duration,
-          age: draft.age,
-          coverKey: pickCover(draft),
-          createdAt: Date.now(),
-          childId: childId ?? undefined,
-        };
-        setCurrentStory(story);
-        saveStoryToLibrary(story);
         setProgress(100);
-        setTimeout(() => navigate({ to: "/ascolta", search: { id: story.id } }), 600);
+        setTimeout(() => navigate({ to: "/ascolta", search: { id: res.id } }), 600);
       })
       .catch((e: unknown) => {
         const msg = e instanceof Error ? e.message : "Qualcosa è andato storto.";
-        setError(msg);
+        const isAuthError = msg.includes("Unauthorized");
+        setError(isAuthError ? "Devi accedere o registrarti per creare una storia." : msg);
+        setNeedsAuth(isAuthError);
       });
   }, [navigate]);
 
   return (
     <AppShell hideNav>
       <div className="flex min-h-[80dvh] flex-col items-center justify-center text-center">
-        {/* Magical book / orb */}
         <div className="relative mb-12">
           <div className="absolute inset-0 -z-10 animate-spin-slow rounded-full bg-[conic-gradient(from_0deg,var(--celeste),var(--giallo),var(--viola),var(--celeste))] blur-2xl opacity-50" />
           <div className="relative grid size-56 place-items-center rounded-full glass-strong animate-breathe">
@@ -113,7 +93,6 @@ function GeneratePage() {
               <span className="text-7xl">📖</span>
             </div>
           </div>
-          {/* Floating sparkles */}
           {[0, 1, 2, 3, 4].map((i) => (
             <span
               key={i}
@@ -135,10 +114,10 @@ function GeneratePage() {
             <p className="mt-2 max-w-xs text-sm text-muted-foreground">{error}</p>
             <button
               type="button"
-              onClick={() => navigate({ to: "/crea" })}
+              onClick={() => navigate({ to: needsAuth ? "/auth" : "/crea" })}
               className="mt-6 rounded-full bg-giallo px-6 py-3 font-bold text-primary-foreground"
             >
-              Riprova
+              {needsAuth ? "Accedi o registrati" : "Riprova"}
             </button>
           </>
         ) : (

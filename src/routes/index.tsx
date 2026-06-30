@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Moon, Rocket, Sparkles, BookOpen, Play, ChevronRight, Mic, Users, Bluetooth } from "lucide-react";
+import { Moon, Rocket, Wand2, BookOpen, Play, ChevronRight, Mic, Users, Bluetooth } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import logo from "@/assets/millestorie-logo-orizzontale.png";
 import { AppShell } from "@/components/AppShell";
 import { StoryCover } from "@/components/StoryCover";
 import { getLibrary } from "@/lib/story-store";
@@ -41,14 +42,11 @@ function Home() {
   const last = recent[0];
 
   return (
-    <AppShell>
+    <AppShell hideLogo>
       {/* Top bar */}
       <header className="flex items-center justify-between pt-2">
         <div className="flex items-center gap-2">
-          <span className="relative grid size-9 place-items-center rounded-2xl bg-giallo text-primary-foreground shadow-[0_0_24px_var(--glow)]">
-            <Sparkles className="size-5" />
-          </span>
-          <span className="font-display text-xl font-bold tracking-tight">MilleStorie</span>
+          <img src={logo} alt="MilleStorie" className="h-16 w-auto" />
         </div>
         <div className="flex items-center gap-2">
           {authed ? (
@@ -105,7 +103,7 @@ function Home() {
           className="group relative mt-8 block overflow-hidden rounded-[36px]"
           aria-label="Parla con MilleStorie"
         >
-          <div className="absolute inset-0 -z-10 bg-[var(--gradient-sun)]" />
+          <div className="absolute inset-0 -z-10 [background-image:var(--gradient-sun)]" />
           <div className="absolute -right-6 -top-6 size-32 rounded-full bg-white/30 blur-2xl animate-float" />
           <div className="relative flex flex-col gap-5 px-6 pt-8 pb-7 text-primary-foreground">
             <div className="flex items-center justify-between">
@@ -146,7 +144,7 @@ function Home() {
         className="group relative mt-8 block overflow-hidden rounded-[36px]"
         aria-label="Inizia una nuova storia"
       >
-        <div className="absolute inset-0 -z-10 bg-[var(--gradient-sun)]" />
+        <div className="absolute inset-0 -z-10 [background-image:var(--gradient-sun)]" />
         <div className="absolute -right-6 -top-6 size-32 rounded-full bg-white/30 blur-2xl animate-float" />
         <div className="absolute -bottom-8 -left-8 size-32 rounded-full bg-orange-500/30 blur-2xl" />
         <div className="relative flex flex-col gap-5 px-6 pt-8 pb-7 text-primary-foreground">
@@ -252,9 +250,9 @@ function ModeTile({ mode }: { mode: StoryMode }) {
   const accents: Record<StoryMode, { bg: string; icon: typeof Moon }> = {
     nanna:      { bg: "from-indigo-900/60 to-viola/40", icon: Moon },
     avventura:  { bg: "from-orange-900/40 to-rose-900/40", icon: Rocket },
-    magica:     { bg: "from-fuchsia-900/40 to-viola/50", icon: Sparkles },
+    magica:     { bg: "from-fuchsia-900/40 to-viola/50", icon: Wand2 },
     educativa:  { bg: "from-emerald-900/40 to-celeste/30", icon: BookOpen },
-    divertente: { bg: "from-amber-900/40 to-orange-900/40", icon: Sparkles },
+    divertente: { bg: "from-amber-900/40 to-orange-900/40", icon: Wand2 },
   };
   const { bg, icon: Icon } = accents[mode];
   return (

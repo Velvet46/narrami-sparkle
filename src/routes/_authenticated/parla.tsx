@@ -4,8 +4,23 @@ import { X, Mic } from "lucide-react";
 
 import { AppShell } from "@/components/AppShell";
 import { listChildren, type ChildProfile } from "@/lib/child-profiles.functions";
-import { getLibrary, setCurrentStory } from "@/lib/story-store";
-import type { StoryDraft, Story, StoryMode } from "@/lib/types";
+import { listStories } from "@/lib/stories.functions";
+import type { StoryDraft, StoryMode } from "@/lib/types";
+
+type RemoteStory = {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  content: string;
+  mode: string;
+  language: string;
+  favorite: boolean;
+  created_at: string;
+  child_id: string | null;
+  expires_at: string | null;
+  duration: number;
+  cover_key: string;
+};
 import { currentBand, defaultDurationForBand } from "@/lib/time-of-day";
 import { startRecording, transcribe, type RecorderHandle } from "@/lib/voice-recorder";
 import {
@@ -126,7 +141,10 @@ function TalkPage() {
       const voice = (chosen.preferred_voice || "sage") as TtsVoice;
 
       // 2) Favorite vs new
-      const favorites = getLibrary().filter((s) => s.favorite && (!s.childId || s.childId === chosen.id));
+      const allStories = await listStories();
+      const favorites = (allStories as RemoteStory[]).filter(
+        (s) => s.favorite && (!s.child_id || s.child_id === chosen.id),
+      );
       if (favorites.length > 0) {
         await say("Vuoi riascoltare una storia che ti è piaciuta o ne creiamo una nuova insieme?", voice);
         const said = await listen(4500);
@@ -146,19 +164,17 @@ function TalkPage() {
     }
   }
 
-  async function pickFavorite(favorites: Story[], voice: TtsVoice) {
+  async function pickFavorite(favorites: RemoteStory[], voice: TtsVoice) {
     const top = favorites.slice(0, 3);
     if (top.length === 1) {
       await say(`Allora riascoltiamo "${top[0].title}". Inizio subito!`, voice);
-      setCurrentStory(top[0]);
       nav({ to: "/ascolta", search: { id: top[0].id } });
       return;
     }
     await say(`Hai queste storie: ${top.map((s) => s.title).join(", ")}. Quale scegli?`, voice);
     const said = await listen(5000);
-    const match = matchFavoriteTitle(said, top) ?? top[0];
+    const match = matchFavoriteTitle(said, top as any) ?? top[0];
     await say(`Perfetto, "${match.title}". Inizio!`, voice);
-    setCurrentStory(match);
     nav({ to: "/ascolta", search: { id: match.id } });
   }
 

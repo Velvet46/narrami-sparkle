@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Plus, Mic, LogOut, Trash2, BookOpen, Bluetooth, Sparkles, Settings } from "lucide-react";
+import { Plus, Mic, LogOut, Trash2, BookOpen, Bluetooth, Wand2, Settings } from "lucide-react";
 
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
@@ -159,7 +159,7 @@ function FamilyPage() {
                   {(LANGUAGES.find((l) => l.code === c.language)?.flag) ?? "🌐"}
                 </button>
                 <button onClick={() => setChangeFor(c)} aria-label="Cambia personaggio" className="grid size-9 place-items-center rounded-full text-celeste">
-                  <Sparkles className="size-4" />
+                  <Wand2 className="size-4" />
                 </button>
                 <button onClick={() => remove(c.id)} aria-label="Elimina" className="grid size-9 place-items-center rounded-full text-muted-foreground">
                   <Trash2 className="size-4" />

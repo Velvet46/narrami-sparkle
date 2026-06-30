@@ -1,10 +1,10 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Sparkles } from "lucide-react";
-
+import { Wand2 } from "lucide-react";
+import logo from "@/assets/millestorie-logo-orizzontale.png";
 import { AppShell } from "@/components/AppShell";
+
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -57,24 +57,42 @@ function AuthPage() {
 
   async function google() {
     setError(null);
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin + "/famiglia",
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin + "/famiglia",
+        skipBrowserRedirect: true,
+      },
     });
-    if (result.error) setError(result.error.message || "Errore Google");
-    if (!result.redirected && !result.error) nav({ to: "/famiglia" });
+    if (error) {
+      setError(error.message || "Errore Google");
+      return;
+    }
+    if (!data?.url) {
+      setError("Errore Google");
+      return;
+    }
+    const popup = window.open(data.url, "google-oauth", "width=500,height=650,top=100,left=100,toolbar=no,menubar=no,location=no,status=no");
+    if (!popup) {
+      setError("Il browser ha bloccato il popup. Consenti i popup per questo sito.");
+      return;
+    }
+    const checkClosed = setInterval(async () => {
+      if (popup.closed) {
+        clearInterval(checkClosed);
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData.session) {
+          nav({ to: "/famiglia" });
+        }
+      }
+    }, 500);
   }
 
   return (
-    <AppShell hideNav>
+    <AppShell hideNav hideLogo>
       <div className="flex min-h-[80dvh] flex-col justify-center">
         <div className="mb-8 text-center">
-          <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-giallo text-primary-foreground shadow-[0_0_30px_var(--glow)]">
-            <Sparkles className="size-7" />
-          </span>
-          <h1 className="mt-4 font-display text-3xl font-bold">MilleStorie</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {mode === "signin" ? "Bentornato genitore" : "Crea il tuo account famiglia"}
-          </p>
+          <img src={logo} alt="MilleStorie" className="mx-auto h-[88px] w-auto" />
         </div>
 
         <button

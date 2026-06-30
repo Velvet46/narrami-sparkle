@@ -1,10 +1,10 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, Library, Sparkles } from "lucide-react";
+import { Home, Library, Wand2 } from "lucide-react";
 
 const items = [
   { to: "/", label: "Home", icon: Home },
   { to: "/libreria", label: "Libreria", icon: Library },
-  { to: "/crea", label: "Crea", icon: Sparkles },
+  { to: "/crea", label: "Crea", icon: Wand2 },
 ] as const;
 
 export function BottomNav() {

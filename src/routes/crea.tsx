@@ -1,10 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, ArrowRight, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { ArrowLeft, ArrowRight, Wand2, Mic } from "lucide-react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 
 import { AppShell } from "@/components/AppShell";
 import { MODE_META, type AgeRange, type Duration, type StoryDraft, type StoryMode } from "@/lib/types";
+import { listChildren, type ChildProfile } from "@/lib/child-profiles.functions";
 
 const searchSchema = z.object({
   mode: z.enum(["nanna", "avventura", "magica", "educativa", "divertente"]).optional(),
@@ -30,6 +31,8 @@ function CreatePage() {
   const navigate = useNavigate();
   const search = Route.useSearch();
   const [step, setStep] = useState(0);
+  const [children, setChildren] = useState<ChildProfile[] | null>(null);
+  const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
   const [draft, setDraft] = useState<StoryDraft>({
     protagonist: search.preset === "dragon" ? "il drago azzurro Brillino" : "",
     setting: search.preset === "dragon" ? "una notte tra nuvole di zucchero" : "",
@@ -38,7 +41,55 @@ function CreatePage() {
     age: "6-8",
   });
 
-  const steps: Array<{ title: string; render: () => React.ReactElement; canNext: () => boolean }> = [
+  useEffect(() => {
+    listChildren()
+      .then((list) => {
+        setChildren(list);
+        if (list.length === 0) {
+          navigate({ to: "/bambino/nuovo" });
+        } else if (list.length === 1) {
+          setSelectedChildId(list[0].id);
+          setDraft((d) => ({ ...d, age: list[0].age_range }));
+        }
+      })
+      .catch(() => setChildren([]));
+  }, [navigate]);
+
+  const needsChildStep = (children?.length ?? 0) > 1;
+
+  const childStep = {
+    title: "Per chi è questa storia?",
+    canNext: () => !!selectedChildId,
+    render: () => (
+      <div className="space-y-3">
+        {(children ?? []).map((c) => (
+          <button
+            key={c.id}
+            type="button"
+            onClick={() => {
+              setSelectedChildId(c.id);
+              setDraft((d) => ({ ...d, age: c.age_range }));
+            }}
+            className={`flex w-full items-center gap-3 rounded-3xl border p-4 text-left transition-all ${
+              selectedChildId === c.id
+                ? "border-giallo bg-giallo/15 shadow-[0_0_30px_var(--glow)]"
+                : "border-white/10 bg-white/5"
+            }`}
+          >
+            <span className="grid size-12 place-items-center rounded-2xl bg-white/10 font-display text-lg font-bold">
+              {c.name[0]?.toUpperCase()}
+            </span>
+            <div>
+              <p className="font-display font-bold">{c.name}</p>
+              <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{c.age_range} anni</p>
+            </div>
+          </button>
+        ))}
+      </div>
+    ),
+  };
+
+  const wizardSteps: Array<{ title: string; render: () => React.ReactElement; canNext: () => boolean }> = [
     {
       title: "Chi sarà il protagonista?",
       canNext: () => draft.protagonist.trim().length > 1,
@@ -143,14 +194,23 @@ function CreatePage() {
     },
   ];
 
+  const steps = needsChildStep ? [childStep, ...wizardSteps] : wizardSteps;
   const isLast = step === steps.length - 1;
   const current = steps[step];
+
+  if (children === null) {
+    return (
+      <AppShell hideNav>
+        <p className="mt-10 text-center text-sm text-muted-foreground">Caricamento…</p>
+      </AppShell>
+    );
+  }
 
   const goNext = () => {
     if (!current.canNext()) return;
     if (isLast) {
-      // Stash draft and navigate to generation
       window.sessionStorage.setItem("millestorie:draft", JSON.stringify(draft));
+      if (selectedChildId) window.sessionStorage.setItem("millestorie:childId", selectedChildId);
       navigate({ to: "/genera" });
     } else {
       setStep((s) => s + 1);
@@ -182,7 +242,6 @@ function CreatePage() {
         <div className="size-10" />
       </header>
 
-      {/* Progress */}
       <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-white/10">
         <div
           className="h-full bg-gradient-to-r from-celeste to-giallo transition-all duration-500"
@@ -208,7 +267,7 @@ function CreatePage() {
           >
             {isLast ? (
               <>
-                <Sparkles className="size-5" />
+                <Wand2 className="size-5" />
                 Crea la storia
               </>
             ) : (
@@ -234,6 +293,28 @@ function TextField({
   placeholder?: string;
   label?: string;
 }) {
+  const [listening, setListening] = useState(false);
+
+  function startListening() {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) {
+      alert("Il riconoscimento vocale non è supportato su questo browser.");
+      return;
+    }
+    const recognition = new SR();
+    recognition.lang = "it-IT";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognition.onstart = () => setListening(true);
+    recognition.onend = () => setListening(false);
+    recognition.onerror = () => setListening(false);
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      onChange(transcript);
+    };
+    recognition.start();
+  }
+
   return (
     <label className="block">
       {label && (
@@ -241,13 +322,25 @@ function TextField({
           {label}
         </span>
       )}
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full rounded-3xl border border-white/10 bg-white/5 px-5 py-4 font-medium text-foreground outline-none transition-all placeholder:text-muted-foreground/70 focus:border-celeste/60 focus:bg-white/10 focus:ring-4 focus:ring-celeste/20"
-      />
+      <div className="relative">
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="w-full rounded-3xl border border-white/10 bg-white/5 px-5 py-4 pr-14 font-medium text-foreground outline-none transition-all placeholder:text-muted-foreground/70 focus:border-celeste/60 focus:bg-white/10 focus:ring-4 focus:ring-celeste/20"
+        />
+        <button
+          type="button"
+          onClick={startListening}
+          aria-label="Detta a voce"
+          className={`absolute right-3 top-1/2 -translate-y-1/2 grid size-9 place-items-center rounded-full transition-colors ${
+            listening ? "bg-rose-500 text-white animate-pulse" : "bg-white/10 text-muted-foreground"
+          }`}
+        >
+          <Mic className="size-4" />
+        </button>
+      </div>
     </label>
   );
 }
