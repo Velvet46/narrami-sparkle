@@ -4,7 +4,7 @@ export const Route = createFileRoute("/api/stt")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const apiKey = process.env.OPENAI_API_KEY;
+        const apiKey = process.env.GEMINI_API_KEY;
         if (!apiKey) return new Response("AI non configurata", { status: 500 });
 
         const ct = request.headers.get("content-type") || "";
@@ -14,37 +14,51 @@ export const Route = createFileRoute("/api/stt")({
 
         const form = await request.formData();
         const file = form.get("file");
-        if (!(file instanceof Blob)) {
-          return new Response("Missing file", { status: 400 });
-        }
+        if (!(file instanceof Blob)) return new Response("Missing file", { status: 400 });
         if (file.size < 800) {
           return new Response(JSON.stringify({ text: "" }), {
             headers: { "Content-Type": "application/json" },
           });
         }
 
-        const upstream = new FormData();
-        upstream.append("model", "whisper-1");
-        upstream.append("language", "it");
-        const ext = (file as File).name?.split(".").pop() || "webm";
-        upstream.append("file", file, `recording.${ext}`);
-
         try {
+          const arrayBuffer = await file.arrayBuffer();
+          const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+          const mimeType = file.type || "audio/webm";
+
           const res = await fetch(
-            "https://api.openai.com/v1/audio/transcriptions",
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
             {
               method: "POST",
-              headers: { Authorization: `Bearer ${apiKey}` },
-              body: upstream,
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [{
+                  parts: [
+                    {
+                      inline_data: {
+                        mime_type: mimeType,
+                        data: base64,
+                      }
+                    },
+                    {
+                      text: "Trascrivi esattamente quello che viene detto in questo audio in italiano. Rispondi solo con il testo trascritto, senza spiegazioni."
+                    }
+                  ]
+                }]
+              }),
               signal: request.signal,
-            },
+            }
           );
+
           if (!res.ok) {
             const t = await res.text().catch(() => "");
             return new Response(t || `STT failed: ${res.status}`, { status: res.status });
           }
+
           const data = await res.json();
-          return new Response(JSON.stringify({ text: data.text ?? "" }), {
+          const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+
+          return new Response(JSON.stringify({ text: text.trim() }), {
             headers: { "Content-Type": "application/json" },
           });
         } catch (err) {

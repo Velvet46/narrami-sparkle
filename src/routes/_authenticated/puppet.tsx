@@ -17,6 +17,7 @@ import {
   type WordCategory,
 } from "@/lib/voice-conversation";
 import { supabase } from "@/integrations/supabase/client";
+import { unlockAudioContext } from "@/lib/audio-context";
 
 export const Route = createFileRoute("/_authenticated/puppet")({
   head: () => ({ meta: [{ title: "Modalità Pupazzo · MilleStorie" }] }),
@@ -152,8 +153,11 @@ function PuppetPage() {
       setPhase("thinking");
       setCaption("Sto pensando…");
       return await transcribe(blob);
-    } catch {
+    } catch (e: any) {
       setIsListening(false);
+      const msg = e?.message || "";
+      if (msg === "MIC_DENIED") setErr("Permesso microfono negato. Se hai aperto il link da unapp email, apri in Safari o Chrome.");
+      else if (msg === "MIC_UNAVAILABLE" || msg === "MIC_NOT_FOUND") setErr("Microfono non disponibile su questo browser.");
       return "";
     }
   }
@@ -293,6 +297,7 @@ function PuppetPage() {
   }
 
   async function start() {
+    unlockAudioContext();
     try {
       stopRef.current = false;
       setErr(null);

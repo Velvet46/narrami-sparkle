@@ -2,14 +2,25 @@ export interface RecorderHandle {
   stop: () => Promise<Blob>;
   cancel: () => void;
 }
-
 export async function startRecording(): Promise<RecorderHandle> {
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  let stream: MediaStream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch (e: any) {
+    const name = e?.name || "UnknownError";
+    if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+      throw new Error("MIC_DENIED");
+    }
+    if (name === "NotFoundError") {
+      throw new Error("MIC_NOT_FOUND");
+    }
+    throw new Error("MIC_UNAVAILABLE");
+  }
   const candidates = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"];
   const mimeType = candidates.find((t) => (window as any).MediaRecorder?.isTypeSupported(t));
   if (!mimeType) {
     stream.getTracks().forEach((t) => t.stop());
-    throw new Error("Browser non supporta la registrazione audio");
+    throw new Error("MIC_UNSUPPORTED");
   }
   const rec = new MediaRecorder(stream, { mimeType });
   const chunks: Blob[] = [];
@@ -17,7 +28,6 @@ export async function startRecording(): Promise<RecorderHandle> {
     if (e.data.size > 0) chunks.push(e.data);
   };
   rec.start(250);
-
   let cancelled = false;
   return {
     stop: () =>
@@ -39,7 +49,6 @@ export async function startRecording(): Promise<RecorderHandle> {
     },
   };
 }
-
 export async function transcribe(blob: Blob): Promise<string> {
   if (blob.size < 800) return "";
   const form = new FormData();

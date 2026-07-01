@@ -1,19 +1,26 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-const VOICES = new Set([
-  "alloy", "ash", "ballad", "coral", "echo", "sage", "shimmer", "verse", "marin", "cedar",
-]);
+const VOICE_MAP: Record<string, string> = {
+  sage: "it-IT-Standard-A",
+  shimmer: "it-IT-Standard-B",
+  coral: "it-IT-Standard-C",
+  ballad: "it-IT-Standard-D",
+  alloy: "it-IT-Standard-E",
+  echo: "it-IT-Wavenet-A",
+  verse: "it-IT-Wavenet-B",
+  marin: "it-IT-Wavenet-C",
+  cedar: "it-IT-Wavenet-D",
+  ash: "it-IT-Neural2-A",
+};
 
 export const Route = createFileRoute("/api/tts")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const apiKey = process.env.OPENAI_API_KEY;
-        if (!apiKey) {
-          return new Response("AI non configurata", { status: 500 });
-        }
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) return new Response("AI non configurata", { status: 500 });
 
-        let body: { text?: string; voice?: string; instructions?: string };
+        let body: { text?: string; voice?: string };
         try {
           body = await request.json();
         } catch {
@@ -22,44 +29,42 @@ export const Route = createFileRoute("/api/tts")({
 
         const text = (body.text ?? "").toString().trim();
         if (!text) return new Response("Missing text", { status: 400 });
-        if (text.length > 4000) {
-          return new Response("Text too long", { status: 400 });
-        }
-        const voice = body.voice && VOICES.has(body.voice) ? body.voice : "sage";
+        if (text.length > 4000) return new Response("Text too long", { status: 400 });
+
+        const voiceName = VOICE_MAP[body.voice ?? "sage"] ?? "it-IT-Standard-A";
 
         try {
-          const upstream = await fetch(
-            "https://api.openai.com/v1/audio/speech",
+          const res = await fetch(
+            `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`,
             {
               method: "POST",
-              headers: {
-                Authorization: `Bearer ${apiKey}`,
-                "Content-Type": "application/json",
-              },
+              headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                model: "gpt-4o-mini-tts",
-                input: text,
-                voice,
-                instructions:
-                  body.instructions ??
-                  "Narra in italiano con voce dolce, calda e magica, come una favola della buonanotte. Ritmo lento, pause espressive, tono rassicurante per bambini.",
-                response_format: "mp3",
+                input: { text },
+                voice: { languageCode: "it-IT", name: voiceName },
+                audioConfig: { audioEncoding: "MP3", speakingRate: 0.95, pitch: 0 },
               }),
               signal: request.signal,
-            },
+            }
           );
 
-          if (!upstream.ok || !upstream.body) {
-            const t = await upstream.text().catch(() => "");
-            return new Response(t || `TTS failed: ${upstream.status}`, {
-              status: upstream.status,
-            });
+          if (!res.ok) {
+            const t = await res.text().catch(() => "");
+            return new Response(t || `TTS failed: ${res.status}`, { status: res.status });
           }
 
-          return new Response(upstream.body, {
+          const data = await res.json();
+          const audioContent = data.audioContent;
+          if (!audioContent) return new Response("No audio", { status: 500 });
+
+          const binary = atob(audioContent);
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+
+          return new Response(bytes, {
             headers: {
-              "Content-Type": "text/event-stream",
-              "Cache-Control": "no-cache, no-transform",
+              "Content-Type": "audio/mpeg",
+              "Cache-Control": "no-cache",
             },
           });
         } catch (err) {

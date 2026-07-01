@@ -14,6 +14,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 
 import { AppShell } from "@/components/AppShell";
+import { unlockAudioContext } from "@/lib/audio-context";
 import { StoryCover } from "@/components/StoryCover";
 import { getStory, saveStoryPermanently, toggleStoryFavorite } from "@/lib/stories.functions";
 import { startListeningSession, endListeningSession } from "@/lib/listening-sessions.functions";
@@ -185,6 +186,7 @@ function PlayerPage() {
   }
 
   function togglePlay() {
+    unlockAudioContext();
     if (isPlaying) {
       stopAudio();
     } else {
