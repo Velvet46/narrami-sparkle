@@ -96,12 +96,12 @@ function AuthPage() {
 
         // Salva profilo se utente creato
         if (data.user) {
-          await supabase.from("profiles").upsert({
+          supabase.from("profiles").upsert({
             id: data.user.id,
             email: email.trim().toLowerCase(),
             full_name: fullName,
             city,
-          });
+          }).then(() => {}).catch(() => {});
         }
 
         // FIX: su Supabase con email confirmation attiva,
