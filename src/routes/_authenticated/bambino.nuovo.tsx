@@ -46,7 +46,7 @@ function NewChildPage() {
     try {
       const character = characters.find((c) => c.id === characterId);
       if (!character) {
-        setErr("Scegli un personaggio");
+        setErr("Funzionalità in aggiornamento, riprova presto!");
         setBusy(false);
         return;
       }
@@ -152,12 +152,12 @@ function NewChildPage() {
             className="glass w-full rounded-2xl px-4 py-3 text-sm outline-none" />
         </Field>
 
-        <Field label="Scegli il pupazzo compagno">
+        <Field label="Il tuo compagno di storie">
           <p className="-mt-1 mb-3 text-[11px] text-muted-foreground">
-            Ogni pupazzo ha la sua voce. Tocca ▶︎ per ascoltarla prima di scegliere.
+            I personaggi sono in arrivo! Presto potrai scegliere la voce preferita.
           </p>
           {characters.length === 0 ? (
-            <p className="text-xs text-muted-foreground">Caricamento personaggi…</p>
+            <p className="text-xs text-muted-foreground">Personaggi in arrivo presto…</p>
           ) : (
             <CharacterPicker characters={characters} value={characterId} onChange={setCharacterId} />
           )}
