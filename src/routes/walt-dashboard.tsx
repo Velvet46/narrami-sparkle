@@ -18,6 +18,9 @@ type ChildRow = {
 
 type UserRow = {
   id: string;
+  email: string;
+  full_name: string;
+  city: string;
   created_at: string;
   children: ChildRow[];
   stories_generated: number;
@@ -44,60 +47,72 @@ function WaltDashboard() {
   async function loadData() {
     setLoading(true);
     try {
-      const { data: children } = await supabase
-        .from("child_profiles")
+      const { data: profiles } = await supabase
+        .from("profiles")
         .select("*")
         .order("created_at", { ascending: false });
 
+      const { data: children } = await supabase
+        .from("child_profiles")
+        .select("*");
+
       const { data: stories } = await supabase
         .from("stories")
-        .select("id, parent_id, child_id, mode, created_at");
+        .select("id, parent_id");
 
       const { data: sessions } = await supabase
         .from("listening_sessions")
         .select("id, child_id");
 
-      if (!children) return;
+      if (!profiles) return;
 
-      const parentMap = new Map<string, UserRow>();
-      for (const child of children) {
-        if (!parentMap.has(child.parent_id)) {
-          parentMap.set(child.parent_id, {
-            id: child.parent_id,
-            created_at: child.created_at,
-            children: [],
-            stories_generated: 0,
-            stories_listened: 0,
-          });
-        }
-        parentMap.get(child.parent_id)!.children.push({
-          id: child.id,
-          name: child.name,
-          age_range: child.age_range,
-          gender: child.gender,
-          language: child.language,
+      const userMap = new Map<string, UserRow>();
+      for (const p of profiles) {
+        userMap.set(p.id, {
+          id: p.id,
+          email: p.email || "—",
+          full_name: p.full_name || "—",
+          city: p.city || "—",
+          created_at: p.created_at,
+          children: [],
+          stories_generated: 0,
+          stories_listened: 0,
         });
       }
 
-      if (stories) {
-        for (const story of stories) {
-          const row = parentMap.get(story.parent_id);
-          if (row) row.stories_generated++;
-        }
-      }
-
-      if (sessions) {
-        for (const session of sessions) {
-          for (const [, row] of parentMap) {
-            if (row.children.some((c) => c.id === session.child_id)) {
-              row.stories_listened++;
-              break;
-            }
+      if (children) {
+        for (const child of children) {
+          const row = userMap.get(child.parent_id);
+          if (row) {
+            row.children.push({
+              id: child.id,
+              name: child.name,
+              age_range: child.age_range,
+              gender: child.gender,
+              language: child.language,
+            });
           }
         }
       }
 
-      setUsers(Array.from(parentMap.values()));
+      if (stories) {
+        for (const story of stories) {
+          const row = userMap.get(story.parent_id);
+          if (row) row.stories_generated++;
+        }
+      }
+
+      if (sessions && children) {
+        for (const session of sessions) {
+          const child = children.find((c) => c.id === session.child_id);
+          if (child) {
+            const row = userMap.get(child.parent_id);
+            if (row) row.stories_listened++;
+          }
+        }
+      }
+
+      setUsers(Array.from(userMap.values()));
     } finally {
       setLoading(false);
     }
@@ -111,7 +126,9 @@ function WaltDashboard() {
   const filtered = users.filter((u) => {
     const matchSearch =
       !search ||
-      u.id.toLowerCase().includes(search.toLowerCase()) ||
+      u.email.toLowerCase().includes(search.toLowerCase()) ||
+      u.full_name.toLowerCase().includes(search.toLowerCase()) ||
+      u.city.toLowerCase().includes(search.toLowerCase()) ||
       u.children.some((c) => c.name.toLowerCase().includes(search.toLowerCase()));
     const matchAge =
       !filterAge || u.children.some((c) => c.age_range === filterAge);
@@ -126,15 +143,11 @@ function WaltDashboard() {
 
   return (
     <div className="min-h-screen bg-amber-50">
-      {/* Header */}
       <div className="bg-amber-400 border-b border-amber-500 px-6 py-4 flex items-center justify-between shadow-sm">
         <img src={logo} alt="MilleStorie" className="h-10 w-auto" />
         <div className="flex items-center gap-4">
           <p className="text-xs text-white/70 uppercase tracking-widest hidden sm:block">Dashboard CEO</p>
-          <button
-            onClick={signOut}
-            className="flex items-center gap-2 text-xs text-white/70 hover:text-white transition-colors"
-          >
+          <button onClick={signOut} className="flex items-center gap-2 text-xs text-white/70 hover:text-white transition-colors">
             <LogOut className="size-4" /> Esci
           </button>
         </div>
@@ -164,7 +177,7 @@ function WaltDashboard() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Cerca bambino o utente…"
+              placeholder="Cerca nome, email, città…"
               className="bg-transparent text-sm outline-none w-full placeholder:text-gray-300 text-gray-700"
             />
           </div>
@@ -193,26 +206,25 @@ function WaltDashboard() {
                   onClick={() => setSelected(selected === u.id ? null : u.id)}
                   className="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-amber-50 transition-colors"
                 >
-                  <div>
-                    <p className="text-xs font-mono text-gray-400 truncate max-w-[160px]">{u.id.slice(0, 12)}…</p>
-                    <p className="text-[11px] text-gray-300 mt-0.5">
-                      Registrato: {new Date(u.created_at).toLocaleDateString("it-IT")}
-                    </p>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-gray-700 truncate">{u.full_name}</p>
+                    <p className="text-[11px] text-gray-400 truncate">{u.email}</p>
+                    <p className="text-[11px] text-gray-300">{u.city} · {new Date(u.created_at).toLocaleDateString("it-IT")}</p>
                   </div>
-                  <div className="flex items-center gap-5">
-                    <div className="text-center">
+                  <div className="flex items-center gap-4 ml-4">
+                    <div className="text-center hidden sm:block">
                       <p className="text-sm font-bold text-gray-700">{u.children.length}</p>
                       <p className="text-[10px] text-gray-400">bambini</p>
                     </div>
-                    <div className="text-center">
+                    <div className="text-center hidden sm:block">
                       <p className="text-sm font-bold text-gray-700">{u.stories_generated}</p>
                       <p className="text-[10px] text-gray-400">generate</p>
                     </div>
-                    <div className="text-center">
+                    <div className="text-center hidden sm:block">
                       <p className="text-sm font-bold text-gray-700">{u.stories_listened}</p>
                       <p className="text-[10px] text-gray-400">ascoltate</p>
                     </div>
-                    <div className="text-center">
+                    <div className="text-center hidden sm:block">
                       <p className="text-[11px] text-gray-300">💳</p>
                       <p className="text-[10px] text-gray-300">Stripe</p>
                     </div>
@@ -226,7 +238,9 @@ function WaltDashboard() {
                 {selected === u.id && (
                   <div className="border-t border-amber-50 px-5 py-4 bg-amber-50/50 space-y-2">
                     <p className="text-[11px] uppercase tracking-widest text-gray-400 mb-3">Bambini registrati</p>
-                    {u.children.map((c) => (
+                    {u.children.length === 0 ? (
+                      <p className="text-xs text-gray-300">Nessun bambino aggiunto</p>
+                    ) : u.children.map((c) => (
                       <div key={c.id} className="flex items-center justify-between bg-white rounded-xl px-4 py-3 border border-amber-100">
                         <div>
                           <p className="text-sm font-semibold text-gray-700">{c.name}</p>
@@ -236,8 +250,19 @@ function WaltDashboard() {
                         </div>
                       </div>
                     ))}
-                    <div className="bg-white rounded-xl px-4 py-3 border border-amber-100 text-xs text-gray-400">
-                      💳 Stripe — da collegare
+                    <div className="sm:hidden mt-3 grid grid-cols-3 gap-2">
+                      <div className="bg-white rounded-xl px-3 py-2 text-center border border-amber-100">
+                        <p className="text-sm font-bold text-gray-700">{u.stories_generated}</p>
+                        <p className="text-[10px] text-gray-400">generate</p>
+                      </div>
+                      <div className="bg-white rounded-xl px-3 py-2 text-center border border-amber-100">
+                        <p className="text-sm font-bold text-gray-700">{u.stories_listened}</p>
+                        <p className="text-[10px] text-gray-400">ascoltate</p>
+                      </div>
+                      <div className="bg-white rounded-xl px-3 py-2 text-center border border-amber-100">
+                        <p className="text-[11px] text-gray-300">💳</p>
+                        <p className="text-[10px] text-gray-300">Stripe</p>
+                      </div>
                     </div>
                   </div>
                 )}
