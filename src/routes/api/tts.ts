@@ -8,7 +8,7 @@ export const Route = createFileRoute("/api/tts")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const apiKey = process.env.LOVABLE_API_KEY;
+        const apiKey = process.env.OPENAI_API_KEY;
         if (!apiKey) {
           return new Response("AI non configurata", { status: 500 });
         }
@@ -29,7 +29,7 @@ export const Route = createFileRoute("/api/tts")({
 
         try {
           const upstream = await fetch(
-            "https://ai.gateway.lovable.dev/v1/audio/speech",
+            "https://api.openai.com/v1/audio/speech",
             {
               method: "POST",
               headers: {
@@ -37,14 +37,13 @@ export const Route = createFileRoute("/api/tts")({
                 "Content-Type": "application/json",
               },
               body: JSON.stringify({
-                model: "openai/gpt-4o-mini-tts",
+                model: "gpt-4o-mini-tts",
                 input: text,
                 voice,
                 instructions:
                   body.instructions ??
                   "Narra in italiano con voce dolce, calda e magica, come una favola della buonanotte. Ritmo lento, pause espressive, tono rassicurante per bambini.",
-                stream_format: "sse",
-                response_format: "pcm",
+                response_format: "mp3",
               }),
               signal: request.signal,
             },
