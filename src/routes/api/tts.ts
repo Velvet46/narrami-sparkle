@@ -1,16 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 const VOICE_MAP: Record<string, string> = {
-  sage:    "EXAVITQu4vr4xnSDxMaL",
-  shimmer: "21m00Tcm4TlvDq8ikWAM",
-  coral:   "AZnzlk1XvdvUeBnXmlld",
-  ballad:  "D38z5RcWu1voky8WS1ja",
-  alloy:   "pNInz6obpgDQGcFmaJgB",
-  echo:    "VR6AewLTigWG4xSOukaG",
-  verse:   "yoZ06aMxZJJ28mfd3POQ",
-  marin:   "jBpfuIE2acCO8z3wKNLl",
-  cedar:   "Zlb1dXrM653N07WRdFW3",
-  ash:     "MF3mGyEYCl7XYWbV9V6O",
+  shimmer: "3DPhHWXDY263XJ1d2EPN",  // Luminosa
+  verse:   "ZRKmc75tGxpIMNTEiwe0",  // Poetica
+  alloy:   "QttbagfgqUCm9K0VgUyT",  // Neutra
 };
 
 export const Route = createFileRoute("/api/tts")({
@@ -31,7 +24,7 @@ export const Route = createFileRoute("/api/tts")({
         if (!text) return new Response("Missing text", { status: 400 });
         if (text.length > 4000) return new Response("Text too long", { status: 400 });
 
-        const voiceId = VOICE_MAP[body.voice ?? "sage"] ?? VOICE_MAP.sage;
+        const voiceId = VOICE_MAP[body.voice ?? "shimmer"] ?? VOICE_MAP.shimmer;
 
         try {
           const res = await fetch(

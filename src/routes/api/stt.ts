@@ -4,7 +4,7 @@ export const Route = createFileRoute("/api/stt")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const apiKey = process.env.GEMINI_API_KEY;
+        const apiKey = process.env.ELEVENLABS_API_KEY;
         if (!apiKey) return new Response("AI non configurata", { status: 500 });
 
         const ct = request.headers.get("content-type") || "";
@@ -22,30 +22,18 @@ export const Route = createFileRoute("/api/stt")({
         }
 
         try {
-          const arrayBuffer = await file.arrayBuffer();
-          const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-          const mimeType = file.type || "audio/webm";
+          const upstream = new FormData();
+          const ext = (file as File).name?.split(".").pop() || "webm";
+          upstream.append("file", file, `recording.${ext}`);
+          upstream.append("model_id", "scribe_v1");
+          upstream.append("language_code", "it");
 
           const res = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+            "https://api.elevenlabs.io/v1/speech-to-text",
             {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                contents: [{
-                  parts: [
-                    {
-                      inline_data: {
-                        mime_type: mimeType,
-                        data: base64,
-                      }
-                    },
-                    {
-                      text: "Trascrivi esattamente quello che viene detto in questo audio in italiano. Rispondi solo con il testo trascritto, senza spiegazioni."
-                    }
-                  ]
-                }]
-              }),
+              headers: { "xi-api-key": apiKey },
+              body: upstream,
               signal: request.signal,
             }
           );
@@ -56,7 +44,7 @@ export const Route = createFileRoute("/api/stt")({
           }
 
           const data = await res.json();
-          const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+          const text = data.text ?? "";
 
           return new Response(JSON.stringify({ text: text.trim() }), {
             headers: { "Content-Type": "application/json" },
