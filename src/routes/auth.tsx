@@ -1,9 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Wand2 } from "lucide-react";
 import logo from "@/assets/millestorie-logo-orizzontale.png";
 import { AppShell } from "@/components/AppShell";
-
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/auth")({
@@ -21,6 +19,8 @@ function AuthPage() {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [city, setCity] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,12 +36,20 @@ function AuthPage() {
     setLoading(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: { emailRedirectTo: window.location.origin + "/famiglia" },
         });
         if (error) throw error;
+        if (data.user) {
+          await supabase.from("profiles").insert({
+            id: data.user.id,
+            email,
+            full_name: fullName,
+            city,
+          });
+        }
         nav({ to: "/famiglia" });
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -64,26 +72,15 @@ function AuthPage() {
         skipBrowserRedirect: true,
       },
     });
-    if (error) {
-      setError(error.message || "Errore Google");
-      return;
-    }
-    if (!data?.url) {
-      setError("Errore Google");
-      return;
-    }
+    if (error) { setError(error.message || "Errore Google"); return; }
+    if (!data?.url) { setError("Errore Google"); return; }
     const popup = window.open(data.url, "google-oauth", "width=500,height=650,top=100,left=100,toolbar=no,menubar=no,location=no,status=no");
-    if (!popup) {
-      setError("Il browser ha bloccato il popup. Consenti i popup per questo sito.");
-      return;
-    }
+    if (!popup) { setError("Il browser ha bloccato il popup. Consenti i popup per questo sito."); return; }
     const checkClosed = setInterval(async () => {
       if (popup.closed) {
         clearInterval(checkClosed);
         const { data: sessionData } = await supabase.auth.getSession();
-        if (sessionData.session) {
-          nav({ to: "/famiglia" });
-        }
+        if (sessionData.session) nav({ to: "/famiglia" });
       }
     }, 500);
   }
@@ -108,6 +105,26 @@ function AuthPage() {
         </div>
 
         <form onSubmit={submit} className="space-y-3">
+          {mode === "signup" && (
+            <>
+              <input
+                type="text"
+                required
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Nome e cognome"
+                className="glass w-full rounded-2xl px-4 py-3 text-sm outline-none"
+              />
+              <input
+                type="text"
+                required
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="Città"
+                className="glass w-full rounded-2xl px-4 py-3 text-sm outline-none"
+              />
+            </>
+          )}
           <input
             type="email"
             required
