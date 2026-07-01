@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { generateText } from "ai";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createGroq } from "@ai-sdk/groq";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -99,11 +99,11 @@ export const generateStory = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => DraftSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const key = process.env.GEMINI_API_KEY;
+    const key = process.env.GROQ_API_KEY;
     if (!key) throw new Error("AI non configurata.");
 
-    const google = createGoogleGenerativeAI({ apiKey: key });
-    const model = google("gemini-2.0-flash-lite");
+    const groq = createGroq({ apiKey: key });
+    const model = groq("llama-3.3-70b-versatile");
 
     const { text } = await generateText({
       model,
