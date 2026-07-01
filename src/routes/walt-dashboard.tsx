@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { LogOut, Users, BookOpen, Filter } from "lucide-react";
+import { LogOut, Users, BookOpen, Filter, ChevronDown, ChevronUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import logo from "@/assets/millestorie-logo-orizzontale.png";
 
 export const Route = createFileRoute("/walt-dashboard")({
   component: WaltDashboard,
@@ -87,7 +88,6 @@ function WaltDashboard() {
 
       if (sessions) {
         for (const session of sessions) {
-          // match session.child_id → parent
           for (const [, row] of parentMap) {
             if (row.children.some((c) => c.id === session.child_id)) {
               row.stories_listened++;
@@ -122,67 +122,56 @@ function WaltDashboard() {
   const totalChildren = users.reduce((s, u) => s + u.children.length, 0);
   const totalStories = users.reduce((s, u) => s + u.stories_generated, 0);
   const totalListened = users.reduce((s, u) => s + u.stories_listened, 0);
-
-  const allAges = Array.from(
-    new Set(users.flatMap((u) => u.children.map((c) => c.age_range)))
-  ).sort();
+  const allAges = Array.from(new Set(users.flatMap((u) => u.children.map((c) => c.age_range)))).sort();
 
   return (
-    <div className="min-h-screen bg-[#0d0a1e] text-white">
+    <div className="min-h-screen bg-amber-50">
       {/* Header */}
-      <div className="border-b border-white/10 px-6 py-4 flex items-center justify-between">
-        <div>
-          <p className="text-[10px] uppercase tracking-widest text-white/30">CEO Dashboard</p>
-          <h1 className="text-lg font-bold">Walt — MilleStorie</h1>
+      <div className="bg-white border-b border-amber-100 px-6 py-4 flex items-center justify-between shadow-sm">
+        <img src={logo} alt="MilleStorie" className="h-10 w-auto" />
+        <div className="flex items-center gap-4">
+          <p className="text-xs text-gray-400 uppercase tracking-widest hidden sm:block">Dashboard CEO</p>
+          <button
+            onClick={signOut}
+            className="flex items-center gap-2 text-xs text-gray-400 hover:text-gray-700 transition-colors"
+          >
+            <LogOut className="size-4" /> Esci
+          </button>
         </div>
-        <button
-          onClick={signOut}
-          className="flex items-center gap-2 text-xs text-white/40 hover:text-white/70 transition-colors"
-        >
-          <LogOut className="size-4" /> Esci
-        </button>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
         {/* KPI */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div className="rounded-2xl bg-white/5 border border-white/10 p-4 text-center">
-            <Users className="size-5 mx-auto mb-1 text-celeste" />
-            <p className="text-2xl font-bold">{totalUsers}</p>
-            <p className="text-[10px] text-white/40 uppercase tracking-wider">Utenti</p>
-          </div>
-          <div className="rounded-2xl bg-white/5 border border-white/10 p-4 text-center">
-            <span className="text-xl block mb-1">👶</span>
-            <p className="text-2xl font-bold">{totalChildren}</p>
-            <p className="text-[10px] text-white/40 uppercase tracking-wider">Bambini</p>
-          </div>
-          <div className="rounded-2xl bg-white/5 border border-white/10 p-4 text-center">
-            <BookOpen className="size-5 mx-auto mb-1 text-giallo" />
-            <p className="text-2xl font-bold">{totalStories}</p>
-            <p className="text-[10px] text-white/40 uppercase tracking-wider">Storie generate</p>
-          </div>
-          <div className="rounded-2xl bg-white/5 border border-white/10 p-4 text-center">
-            <span className="text-xl block mb-1">🎧</span>
-            <p className="text-2xl font-bold">{totalListened}</p>
-            <p className="text-[10px] text-white/40 uppercase tracking-wider">Storie ascoltate</p>
-          </div>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          {[
+            { icon: <Users className="size-5 text-amber-400" />, value: totalUsers, label: "Utenti" },
+            { icon: <span className="text-xl">👶</span>, value: totalChildren, label: "Bambini" },
+            { icon: <BookOpen className="size-5 text-amber-400" />, value: totalStories, label: "Storie generate" },
+            { icon: <span className="text-xl">🎧</span>, value: totalListened, label: "Storie ascoltate" },
+          ].map((k) => (
+            <div key={k.label} className="bg-white rounded-2xl border border-amber-100 p-5 text-center shadow-sm">
+              <div className="flex justify-center mb-2">{k.icon}</div>
+              <p className="text-3xl font-bold text-gray-800">{k.value}</p>
+              <p className="text-[11px] text-gray-400 uppercase tracking-wider mt-1">{k.label}</p>
+            </div>
+          ))}
         </div>
 
         {/* Filtri */}
         <div className="flex gap-3 flex-wrap">
-          <div className="flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 px-3 py-2 flex-1 min-w-[160px]">
-            <Filter className="size-3 text-white/30" />
+          <div className="flex items-center gap-2 bg-white rounded-xl border border-amber-100 px-4 py-2.5 flex-1 min-w-[160px] shadow-sm">
+            <Filter className="size-3.5 text-gray-300" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Cerca bambino…"
-              className="bg-transparent text-sm outline-none w-full placeholder:text-white/25"
+              placeholder="Cerca bambino o utente…"
+              className="bg-transparent text-sm outline-none w-full placeholder:text-gray-300 text-gray-700"
             />
           </div>
           <select
             value={filterAge}
             onChange={(e) => setFilterAge(e.target.value)}
-            className="rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm text-white/70 outline-none"
+            className="bg-white rounded-xl border border-amber-100 px-4 py-2.5 text-sm text-gray-500 outline-none shadow-sm"
           >
             <option value="">Tutte le età</option>
             {allAges.map((a) => (
@@ -193,66 +182,61 @@ function WaltDashboard() {
 
         {/* Lista utenti */}
         {loading ? (
-          <p className="text-center text-sm text-white/30 py-12">Caricamento…</p>
+          <p className="text-center text-sm text-gray-400 py-12">Caricamento…</p>
         ) : filtered.length === 0 ? (
-          <p className="text-center text-sm text-white/30 py-12">Nessun utente trovato</p>
+          <p className="text-center text-sm text-gray-400 py-12">Nessun utente trovato</p>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {filtered.map((u) => (
-              <div
-                key={u.id}
-                onClick={() => setSelected(selected === u.id ? null : u.id)}
-                className="rounded-2xl bg-white/5 border border-white/10 px-4 py-3 cursor-pointer hover:bg-white/8 transition-colors"
-              >
-                <div className="flex items-center justify-between">
+              <div key={u.id} className="bg-white rounded-2xl border border-amber-100 shadow-sm overflow-hidden">
+                <div
+                  onClick={() => setSelected(selected === u.id ? null : u.id)}
+                  className="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-amber-50 transition-colors"
+                >
                   <div>
-                    <p className="text-xs font-mono text-white/50 truncate max-w-[180px]">
-                      {u.id.slice(0, 12)}…
-                    </p>
-                    <p className="text-[10px] text-white/30 mt-0.5">
+                    <p className="text-xs font-mono text-gray-400 truncate max-w-[160px]">{u.id.slice(0, 12)}…</p>
+                    <p className="text-[11px] text-gray-300 mt-0.5">
                       Registrato: {new Date(u.created_at).toLocaleDateString("it-IT")}
                     </p>
                   </div>
-                  <div className="flex items-center gap-4 text-right">
-                    <div>
-                      <p className="text-sm font-bold">{u.children.length}</p>
-                      <p className="text-[9px] text-white/30">bambini</p>
+                  <div className="flex items-center gap-5">
+                    <div className="text-center">
+                      <p className="text-sm font-bold text-gray-700">{u.children.length}</p>
+                      <p className="text-[10px] text-gray-400">bambini</p>
                     </div>
-                    <div>
-                      <p className="text-sm font-bold">{u.stories_generated}</p>
-                      <p className="text-[9px] text-white/30">generate</p>
+                    <div className="text-center">
+                      <p className="text-sm font-bold text-gray-700">{u.stories_generated}</p>
+                      <p className="text-[10px] text-gray-400">generate</p>
                     </div>
-                    <div>
-                      <p className="text-sm font-bold">{u.stories_listened}</p>
-                      <p className="text-[9px] text-white/30">ascoltate</p>
+                    <div className="text-center">
+                      <p className="text-sm font-bold text-gray-700">{u.stories_listened}</p>
+                      <p className="text-[10px] text-gray-400">ascoltate</p>
                     </div>
-                    <div>
-                      <p className="text-[10px] text-white/20">💳</p>
-                      <p className="text-[9px] text-white/30">Stripe</p>
+                    <div className="text-center">
+                      <p className="text-[11px] text-gray-300">💳</p>
+                      <p className="text-[10px] text-gray-300">Stripe</p>
                     </div>
+                    {selected === u.id
+                      ? <ChevronUp className="size-4 text-gray-300" />
+                      : <ChevronDown className="size-4 text-gray-300" />
+                    }
                   </div>
                 </div>
 
-                {/* Dettaglio espandibile */}
                 {selected === u.id && (
-                  <div className="mt-3 pt-3 border-t border-white/10 space-y-2">
-                    <p className="text-[10px] uppercase tracking-widest text-white/30">Bambini</p>
+                  <div className="border-t border-amber-50 px-5 py-4 bg-amber-50/50 space-y-2">
+                    <p className="text-[11px] uppercase tracking-widest text-gray-400 mb-3">Bambini registrati</p>
                     {u.children.map((c) => (
-                      <div
-                        key={c.id}
-                        className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2"
-                      >
+                      <div key={c.id} className="flex items-center justify-between bg-white rounded-xl px-4 py-3 border border-amber-100">
                         <div>
-                          <p className="text-sm font-semibold">{c.name}</p>
-                          <p className="text-[10px] text-white/40">
-                            {c.age_range} anni ·{" "}
-                            {c.gender === "m" ? "M" : c.gender === "f" ? "F" : "·"} ·{" "}
-                            {c.language.toUpperCase()}
+                          <p className="text-sm font-semibold text-gray-700">{c.name}</p>
+                          <p className="text-[11px] text-gray-400">
+                            {c.age_range} anni · {c.gender === "m" ? "M" : c.gender === "f" ? "F" : "·"} · {c.language.toUpperCase()}
                           </p>
                         </div>
                       </div>
                     ))}
-                    <div className="rounded-xl bg-white/5 px-3 py-2 text-xs text-white/40">
+                    <div className="bg-white rounded-xl px-4 py-3 border border-amber-100 text-xs text-gray-400">
                       💳 Stripe — da collegare
                     </div>
                   </div>
