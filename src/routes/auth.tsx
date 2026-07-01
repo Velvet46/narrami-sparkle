@@ -123,7 +123,7 @@ function AuthPage() {
         password,
       });
       if (error) throw error;
-      // onAuthStateChange gestisce il redirect
+      nav({ to: "/famiglia" });
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Errore";
       setError(friendlyError(msg));
