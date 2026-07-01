@@ -1,4 +1,5 @@
 import { createParser } from "eventsource-parser";
+import { getAudioContext } from "./audio-context";
 
 export type TtsVoice =
   | "alloy" | "ash" | "ballad" | "coral" | "echo"
@@ -53,7 +54,7 @@ export function streamStoryTTS(opts: {
   onChunkStart?: (i: number) => void;
   onEnded?: () => void;
 }): StreamHandle {
-  const ctx = new AudioContext({ sampleRate: 24000 });
+  const ctx = getAudioContext();
   const gain = ctx.createGain();
   gain.connect(ctx.destination);
 
@@ -148,7 +149,6 @@ export function streamStoryTTS(opts: {
         try { s.stop(); } catch { /* noop */ }
       }
       try { gain.disconnect(); } catch { /* noop */ }
-      ctx.close().catch(() => {});
     },
     setRate(r: number) {
       rate = r;
