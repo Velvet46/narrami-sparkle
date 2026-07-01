@@ -1,14 +1,9 @@
-import { getAudioContext } from "./audio-context";
+import { createParser } from "eventsource-parser";
 
-export type TtsVoice =
-  | "alloy" | "ash" | "ballad" | "coral" | "echo"
-  | "sage" | "shimmer" | "verse" | "marin" | "cedar";
+export type TtsVoice = "shimmer" | "verse" | "alloy";
 
 export const VOICE_OPTIONS: { id: TtsVoice; label: string }[] = [
-  { id: "sage",    label: "Saggia" },
   { id: "shimmer", label: "Luminosa" },
-  { id: "coral",   label: "Calda" },
-  { id: "ballad",  label: "Sognante" },
   { id: "verse",   label: "Poetica" },
   { id: "alloy",   label: "Neutra" },
 ];
@@ -48,73 +43,60 @@ export function streamStoryTTS(opts: {
   onChunkStart?: (i: number) => void;
   onEnded?: () => void;
 }): StreamHandle {
-  const ctx = getAudioContext();
+  const ctx = new AudioContext({ sampleRate: 24000 });
   const gain = ctx.createGain();
   gain.connect(ctx.destination);
-
   let playhead = 0;
   let stopped = false;
-  let rate = opts.rate ?? 1;
-  const sources: AudioBufferSourceNode[] = [];
-  const abort = new AbortController();
+  let currentRate = opts.rate ?? 1;
+  const { chunks, voice, onChunkStart, onEnded } = opts;
 
-  const done = (async () => {
-    if (ctx.state === "suspended") await ctx.resume().catch(() => {});
-    for (let i = 0; i < opts.chunks.length; i++) {
-      if (stopped) break;
-      opts.onChunkStart?.(i);
-      await playOne(opts.chunks[i]);
-    }
-    const remaining = Math.max(0, playhead - ctx.currentTime);
-    await new Promise((r) => setTimeout(r, remaining * 1000 + 100));
-    if (!stopped) opts.onEnded?.();
-  })();
-
-  async function playOne(text: string) {
+  async function fetchChunk(text: string): Promise<AudioBuffer> {
     const res = await fetch("/api/tts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, voice: opts.voice }),
-      signal: abort.signal,
-    }).catch((e) => {
-      if (abort.signal.aborted) return null;
-      throw e;
+      body: JSON.stringify({ text, voice }),
     });
-    if (!res) return;
-    if (!res.ok) {
-      const t = await res.text().catch(() => "");
-      throw new Error(`TTS ${res.status}: ${t}`);
-    }
+    if (!res.ok) throw new Error(`TTS ${res.status}`);
     const arrayBuffer = await res.arrayBuffer();
-    if (stopped) return;
-    const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
-    if (stopped) return;
-    const src = ctx.createBufferSource();
-    src.buffer = audioBuffer;
-    src.playbackRate.value = rate;
-    src.connect(gain);
-    if (playhead === 0) playhead = ctx.currentTime + 0.08;
-    else playhead = Math.max(playhead, ctx.currentTime);
-    src.start(playhead);
-    playhead += audioBuffer.duration / rate;
-    sources.push(src);
+    return ctx.decodeAudioData(arrayBuffer);
   }
 
+  let resolveDone!: () => void;
+  const done = new Promise<void>((r) => { resolveDone = r; });
+
+  async function run() {
+    try {
+      for (let i = 0; i < chunks.length; i++) {
+        if (stopped) break;
+        onChunkStart?.(i);
+        const buffer = await fetchChunk(chunks[i]);
+        if (stopped) break;
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.playbackRate.value = currentRate;
+        source.connect(gain);
+        const start = Math.max(ctx.currentTime, playhead);
+        source.start(start);
+        playhead = start + buffer.duration / currentRate;
+        if (i === chunks.length - 1) {
+          source.onended = () => { onEnded?.(); resolveDone(); };
+        }
+      }
+    } catch {
+      resolveDone();
+    }
+  }
+
+  run();
+
   return {
-    stop() {
+    stop: () => {
       stopped = true;
-      abort.abort();
-      for (const s of sources) {
-        try { s.stop(); } catch { /* noop */ }
-      }
-      try { gain.disconnect(); } catch { /* noop */ }
+      try { ctx.close(); } catch { /* noop */ }
+      resolveDone();
     },
-    setRate(r: number) {
-      rate = r;
-      for (const s of sources) {
-        try { s.playbackRate.value = r; } catch { /* noop */ }
-      }
-    },
+    setRate: (rate: number) => { currentRate = rate; },
     done,
   };
 }
