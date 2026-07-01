@@ -257,7 +257,7 @@ function CreatePage() {
         <div className="mt-7">{current.render()}</div>
       </section>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4">
+      <div className="fixed inset-x-0 bottom-0 z-30 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 md:relative md:inset-auto md:bottom-auto md:mt-8 md:pb-0">
         <div className="mx-auto w-full max-w-md px-5">
           <button
             type="button"
