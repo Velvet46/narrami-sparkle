@@ -78,7 +78,7 @@ function GeneratePage() {
       .catch((e: unknown) => {
         const msg = e instanceof Error ? e.message : "Qualcosa è andato storto.";
         const isAuthError = msg.includes("Unauthorized");
-        setError(isAuthError ? "Devi accedere o registrarti per creare una storia." : msg);
+        setError(isAuthError ? "Devi accedere per creare una storia." : "La magia sta riposando un attimo... riprova tra poco! ✨");
         setNeedsAuth(isAuthError);
       });
   }, [navigate]);
@@ -110,7 +110,7 @@ function GeneratePage() {
 
         {error ? (
           <>
-            <h1 className="font-display text-2xl font-bold">Ops, magia interrotta</h1>
+            <h1 className="font-display text-2xl font-bold">Un momento di pausa magica…</h1>
             <p className="mt-2 max-w-xs text-sm text-muted-foreground">{error}</p>
             <button
               type="button"
