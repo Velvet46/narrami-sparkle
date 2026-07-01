@@ -127,13 +127,13 @@ function WaltDashboard() {
   return (
     <div className="min-h-screen bg-amber-50">
       {/* Header */}
-      <div className="bg-white border-b border-amber-100 px-6 py-4 flex items-center justify-between shadow-sm">
+      <div className="bg-amber-400 border-b border-amber-500 px-6 py-4 flex items-center justify-between shadow-sm">
         <img src={logo} alt="MilleStorie" className="h-10 w-auto" />
         <div className="flex items-center gap-4">
-          <p className="text-xs text-gray-400 uppercase tracking-widest hidden sm:block">Dashboard CEO</p>
+          <p className="text-xs text-white/70 uppercase tracking-widest hidden sm:block">Dashboard CEO</p>
           <button
             onClick={signOut}
-            className="flex items-center gap-2 text-xs text-gray-400 hover:text-gray-700 transition-colors"
+            className="flex items-center gap-2 text-xs text-white/70 hover:text-white transition-colors"
           >
             <LogOut className="size-4" /> Esci
           </button>
