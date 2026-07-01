@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import logo from "@/assets/millestorie-logo-orizzontale.png";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
+import { Eye, EyeOff } from "lucide-react";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -21,6 +22,7 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [city, setCity] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -128,25 +130,36 @@ function AuthPage() {
           <input
             type="email"
             required
+            autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="email@famiglia.it"
             className="glass w-full rounded-2xl px-4 py-3 text-base outline-none"
           />
-          <input
-            type="password"
-            required
-            minLength={6}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
-            className="glass w-full rounded-2xl px-4 py-3 text-base outline-none"
-          />
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              required
+              minLength={6}
+              autoComplete={mode === "signin" ? "current-password" : "new-password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password"
+              className="glass w-full rounded-2xl px-4 py-3 pr-12 text-base outline-none"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            >
+              {showPassword ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
+            </button>
+          </div>
           {error && <p className="text-xs text-rose-400">{error}</p>}
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-2xl bg-giallo py-3 text-sm font-bold text-primary-foreground disabled:opacity-60"
+            className="w-full rounded-2xl bg-giallo py-3 text-base font-bold text-primary-foreground disabled:opacity-60"
           >
             {loading ? "Attendi…" : mode === "signin" ? "Entra" : "Crea account"}
           </button>
