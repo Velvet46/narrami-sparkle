@@ -4,7 +4,7 @@ export const Route = createFileRoute("/api/stt")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const apiKey = process.env.LOVABLE_API_KEY;
+        const apiKey = process.env.OPENAI_API_KEY;
         if (!apiKey) return new Response("AI non configurata", { status: 500 });
 
         const ct = request.headers.get("content-type") || "";
@@ -24,14 +24,14 @@ export const Route = createFileRoute("/api/stt")({
         }
 
         const upstream = new FormData();
-        upstream.append("model", "openai/gpt-4o-mini-transcribe");
+        upstream.append("model", "whisper-1");
         upstream.append("language", "it");
         const ext = (file as File).name?.split(".").pop() || "webm";
         upstream.append("file", file, `recording.${ext}`);
 
         try {
           const res = await fetch(
-            "https://ai.gateway.lovable.dev/v1/audio/transcriptions",
+            "https://api.openai.com/v1/audio/transcriptions",
             {
               method: "POST",
               headers: { Authorization: `Bearer ${apiKey}` },
