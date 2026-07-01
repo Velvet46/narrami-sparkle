@@ -34,7 +34,7 @@ const PROTAGONIST_FALLBACKS = [
   "un coniglietto curioso",
 ];
 
-const MODE_MAP: Record<string, "nanna" | "avventura" | "magica" | "educativa" | "divertente"> = {
+const MODE_MAP: Record<string, StoryDraft["mode"]> = {
   nanna: "nanna", dormire: "nanna", sonno: "nanna",
   avventura: "avventura", azione: "avventura", coraggio: "avventura",
   magica: "magica", magia: "magica", strega: "magica", fata: "magica",
@@ -44,10 +44,61 @@ const MODE_MAP: Record<string, "nanna" | "avventura" | "magica" | "educativa" | 
 
 function detectMode(said: string): StoryDraft["mode"] {
   const n = said.toLowerCase();
-  for (const [key, val] of Object.entries(MODE_MAP)) {
-    if (n.includes(key)) return val;
-  }
+  for (const [key, val] of Object.entries(MODE_MAP)) if (n.includes(key)) return val;
   return "magica";
+}
+
+// Waveform component
+function Waveform({ active, color = "#fff", bars = 12 }: { active: boolean; color?: string; bars?: number }) {
+  return (
+    <div className="flex items-center justify-center gap-[3px] h-12">
+      {Array.from({ length: bars }).map((_, i) => (
+        <div
+          key={i}
+          className="rounded-full transition-all duration-150"
+          style={{
+            width: 3,
+            backgroundColor: color,
+            height: active ? `${12 + Math.sin(Date.now() / 200 + i) * 10 + Math.random() * 20}px` : "4px",
+            opacity: active ? 0.8 + Math.random() * 0.2 : 0.3,
+            animationDelay: `${i * 0.05}s`,
+            animation: active ? `wave-bar 0.${6 + (i % 4)}s ease-in-out infinite alternate` : "none",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// Animated waveform with requestAnimationFrame
+function LiveWaveform({ active, color = "rgba(255,255,255,0.8)", bars = 16 }: { active: boolean; color?: string; bars?: number }) {
+  const [heights, setHeights] = useState<number[]>(Array(bars).fill(4));
+  const rafRef = useRef<number>(0);
+
+  useEffect(() => {
+    if (!active) {
+      setHeights(Array(bars).fill(4));
+      return;
+    }
+    const animate = () => {
+      setHeights(Array.from({ length: bars }, (_, i) => 6 + Math.abs(Math.sin(Date.now() / 150 + i * 0.7)) * 30 + Math.random() * 12));
+      rafRef.current = requestAnimationFrame(animate);
+    };
+    rafRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [active, bars]);
+
+  return (
+    <div className="flex items-center justify-center gap-[4px] h-16">
+      {heights.map((h, i) => (
+        <div
+          key={i}
+          className="rounded-full transition-[height] duration-75"
+          style={{ width: 4, height: h, backgroundColor: color }}
+        />
+      ))}
+    </div>
+  );
 }
 
 function PuppetPage() {
@@ -55,6 +106,8 @@ function PuppetPage() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [caption, setCaption] = useState("Tocca per iniziare");
   const [err, setErr] = useState<string | null>(null);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const stopRef = useRef(false);
   const handleRef = useRef<StreamHandle | null>(null);
   const wakeRef = useRef<WakeLockSentinel | null>(null);
@@ -81,37 +134,36 @@ function PuppetPage() {
   async function say(text: string, voice: TtsVoice) {
     if (stopRef.current) return;
     setCaption(text);
+    setIsSpeaking(true);
     await speakAndWait(text, voice);
+    setIsSpeaking(false);
   }
 
   async function listen(maxMs = 5000): Promise<string> {
     if (stopRef.current) return "";
     setPhase("listening");
+    setIsListening(true);
     setCaption("Ti ascolto…");
     try {
       const rec = await startRecording();
       await new Promise((r) => setTimeout(r, maxMs));
       const blob = await rec.stop();
+      setIsListening(false);
       setPhase("thinking");
       setCaption("Sto pensando…");
       return await transcribe(blob);
     } catch {
+      setIsListening(false);
       return "";
     }
   }
 
-  async function listenWithBadWordCheck(
-    maxMs = 5000,
-    child: ChildProfile,
-    voice: TtsVoice,
-  ): Promise<string> {
+  async function listenWithBadWordCheck(maxMs = 5000, child: ChildProfile, voice: TtsVoice): Promise<string> {
     const said = await listen(maxMs);
     if (!said) return said;
     const { category, word } = detectBadWord(said);
     if (category !== "clean") {
-      if (parentIdRef.current) {
-        await logBadWord(child.id, parentIdRef.current, word, said);
-      }
+      if (parentIdRef.current) await logBadWord(child.id, parentIdRef.current, word, said);
       const response = getBadWordResponse(category as WordCategory, child.age_range as AgeRange);
       await say(response, voice);
       return "";
@@ -119,21 +171,12 @@ function PuppetPage() {
     return said;
   }
 
-  async function askWithRetry(
-    question: string,
-    voice: TtsVoice,
-    child: ChildProfile,
-    maxMs = 5000,
-    retries = 2,
-  ): Promise<string> {
+  async function askWithRetry(question: string, voice: TtsVoice, child: ChildProfile, maxMs = 5000, retries = 2): Promise<string> {
     await say(question, voice);
     for (let i = 0; i <= retries; i++) {
       const answer = await listenWithBadWordCheck(maxMs, child, voice);
       if (answer) return answer;
-      if (i < retries) {
-        const retry = getNoAnswerResponse(child.age_range as AgeRange, i + 1);
-        await say(retry, voice);
-      }
+      if (i < retries) await say(getNoAnswerResponse(child.age_range as AgeRange, i + 1), voice);
     }
     return "";
   }
@@ -148,38 +191,23 @@ function PuppetPage() {
     }
     if (!answer) return "unknown";
     const n = answer.toLowerCase();
-    const bad = /\b(male|malissimo|triste|stanco|stufo|arrabbiato|non bene|così così|non tanto)\b/.test(n);
-    const good = /\b(bene|benissimo|ottimo|felice|contento|allegro|super|fantastico|bello)\b/.test(n);
+    const bad = /\b(male|malissimo|triste|stanco|stufo|arrabbiato|non bene)\b/.test(n);
+    const good = /\b(bene|benissimo|ottimo|felice|contento|allegro|super|fantastico)\b/.test(n);
     if (bad) return "bad";
     if (good) return "good";
     return "unknown";
   }
 
-  async function buildStoryFromConversation(child: ChildProfile, voice: TtsVoice): Promise<{
-    protagonist: string;
-    setting: string;
-    mode: StoryDraft["mode"];
-  }> {
+  async function buildStoryFromConversation(child: ChildProfile, voice: TtsVoice): Promise<{ protagonist: string; setting: string; mode: StoryDraft["mode"] }> {
     const age = child.age_range as AgeRange;
     const gender = child.gender as Gender;
-
-    const protagonistQ = getProtagonistQuestion(age, gender);
-    const protagonistAnswer = await askWithRetry(protagonistQ, voice, child, 6000);
+    const protagonistAnswer = await askWithRetry(getProtagonistQuestion(age, gender), voice, child, 6000);
     const detectedGender = detectGenderFromAnswer(protagonistAnswer, gender);
-    const protagonist = sanitizeTheme(protagonistAnswer) ||
-      (detectedGender === "f" ? "una principessa coraggiosa" :
-       detectedGender === "m" ? "un cavaliere avventuroso" :
-       PROTAGONIST_FALLBACKS[Math.floor(Math.random() * PROTAGONIST_FALLBACKS.length)]);
-
+    const protagonist = sanitizeTheme(protagonistAnswer) || (detectedGender === "f" ? "una principessa coraggiosa" : detectedGender === "m" ? "un cavaliere avventuroso" : PROTAGONIST_FALLBACKS[Math.floor(Math.random() * PROTAGONIST_FALLBACKS.length)]);
     const settingAnswer = await askWithRetry(getSettingQuestion(age), voice, child, 6000);
-    const setting = sanitizeTheme(settingAnswer) ||
-      (age === "3-5" ? "un bosco incantato" :
-       age === "6-8" ? "un regno lontano lontano" :
-       "un mondo misterioso e affascinante");
-
+    const setting = sanitizeTheme(settingAnswer) || (age === "3-5" ? "un bosco incantato" : "un regno lontano lontano");
     const moodAnswer = await askWithRetry(getMoodQuestion(age), voice, child, 5000);
     const mode = detectMode(moodAnswer);
-
     return { protagonist, setting, mode };
   }
 
@@ -187,10 +215,9 @@ function PuppetPage() {
     const band = currentBand();
     setPhase("thinking");
     setCaption("Sto pensando a qualcosa di bello…");
-
     const fullDraft: StoryDraft = {
       protagonist: draft.protagonist || child.favorite_animal || PROTAGONIST_FALLBACKS[0],
-      setting: draft.setting || (band.band === "notte" ? "un cielo morbido di nuvole d'argento" : "un mondo di sogni"),
+      setting: draft.setting || (band.band === "notte" ? "un cielo di nuvole d'argento" : "un mondo di sogni"),
       mode: draft.mode || (band.band === "notte" ? "nanna" : band.mode),
       duration: defaultDurationForBand(child.age_range, band.band),
       age: child.age_range,
@@ -199,10 +226,8 @@ function PuppetPage() {
       fearsToAvoid: child.fears || undefined,
       toneHint: band.toneHint,
     };
-
     const res = await generateStory({ data: fullDraft });
     if (stopRef.current) return;
-
     const story: Story = {
       id: crypto.randomUUID(),
       title: res.title,
@@ -216,98 +241,72 @@ function PuppetPage() {
       childId: child.id,
     };
     saveStoryToLibrary(story);
-
     setPhase("telling");
     setCaption(story.title);
-
+    setIsSpeaking(true);
     await new Promise<void>((resolve) => {
-      handleRef.current = streamStoryTTS({
-        chunks: chunkForTTS(story.content),
-        voice,
-        onEnded: () => resolve(),
-      });
+      handleRef.current = streamStoryTTS({ chunks: chunkForTTS(story.content), voice, onEnded: () => resolve() });
       handleRef.current.done.finally(() => resolve());
     });
+    setIsSpeaking(false);
   }
 
   async function loop(child: ChildProfile) {
     const voice = (child.preferred_voice || "sage") as TtsVoice;
     const age = child.age_range as AgeRange;
     const band = currentBand();
-
-    // 1. Saluto e come stai
     setPhase("greeting");
     const mood = await askHowAreYou(child, voice);
-
     if (mood === "bad") {
       await say(getBadResponse(age), voice);
       await tellOne(child, voice, { mode: "divertente" });
     } else {
-      if (mood === "good") await say(getWellResponse(age), voice);
-      else await say(age === "3-5" ? "Ok! Iniziamo!" : "Perfetto, iniziamo!", voice);
-
-      // 2. Costruisci storia dalla conversazione
+      await say(mood === "good" ? getWellResponse(age) : (age === "3-5" ? "Ok! Iniziamo!" : "Perfetto!"), voice);
       setPhase("asking");
       const storyParams = await buildStoryFromConversation(child, voice);
       await tellOne(child, voice, storyParams);
     }
-
     if (stopRef.current) return;
-
-    // 3. Loop storie successive
     let count = 1;
     while (!stopRef.current && count < 5) {
       if (band.band === "notte") {
         await say(age === "3-5" ? "Sogni d'oro! Buonanotte." : "Sogni d'oro. Buonanotte!", voice);
-        setPhase("done");
-        setCaption("Buonanotte 🌙");
-        return;
+        setPhase("done"); setCaption("Buonanotte 🌙"); return;
       }
-
       setPhase("asking");
-      const continueQ = age === "3-5"
-        ? "Ti è piaciuta? Vuoi un'altra storia?"
-        : age === "6-8"
-        ? "Ti è piaciuta la storia? Ne vuoi un'altra?"
-        : "Com'è andata? Vuoi che ne creiamo un'altra?";
-
-      const reply = await listenWithBadWordCheck(4500, child, voice);
+      const continueQ = age === "3-5" ? "Ti è piaciuta? Vuoi un'altra storia?" : age === "6-8" ? "Ti è piaciuta? Ne vuoi un'altra?" : "Vuoi che ne creiamo un'altra?";
       await say(continueQ, voice);
-      const replyText = reply || await listenWithBadWordCheck(4500, child, voice);
-      const n = replyText.toLowerCase();
-      const yes = /\b(si|sì|certo|dai|ancora|altra|voglio|ancora)\b/.test(n);
+      const reply = await listenWithBadWordCheck(4500, child, voice);
+      const n = reply.toLowerCase();
+      const yes = /\b(si|sì|certo|dai|ancora|altra|voglio)\b/.test(n);
       const no = /\b(no|basta|stop|fine|nanna|dormire|stanco)\b/.test(n);
-
-      if (no || (!yes && !replyText)) {
+      if (no || (!yes && !reply)) {
         await say(age === "3-5" ? "Va bene! A presto!" : "Ok, a presto!", voice);
-        setPhase("done");
-        setCaption("A presto! 💛");
-        return;
+        setPhase("done"); setCaption("A presto! 💛"); return;
       }
-
       const newParams = await buildStoryFromConversation(child, voice);
       await tellOne(child, voice, newParams);
       count++;
     }
-
-    if (count >= 5) {
-      await say("Abbiamo ascoltato tante belle storie! Ora riposiamoci.", voice);
-      setPhase("done");
-      setCaption("Bravissimo! 🌟");
-    }
+    await say("Abbiamo ascoltato tante belle storie! Ora riposiamoci.", voice);
+    setPhase("done"); setCaption("Bravissimo! 🌟");
   }
 
   async function start() {
     try {
       stopRef.current = false;
       setErr(null);
+      // Fix AudioContext su mobile — resume dopo gesto utente
+      try {
+        const ctx = new AudioContext();
+        await ctx.resume();
+        ctx.close();
+      } catch { /* noop */ }
       await requestWakeLock();
       setPhase("greeting");
       setCaption("Un attimo…");
-
       const children = await listChildren();
       if (children.length === 0) { nav({ to: "/bambino/nuovo" }); return; }
-
       let child: ChildProfile;
       if (children.length === 1) {
         child = children[0];
@@ -324,11 +323,10 @@ function PuppetPage() {
           child = (matched.length === 1 ? children.find((c) => c.id === matched[0].id) : null) || children[0];
         }
       }
-
       await loop(child);
     } catch (e: unknown) {
       if (stopRef.current) return;
-      setErr("Qualcosa non ha funzionato. Riprova!");
+      setErr("Un momento di pausa magica… riprova!");
       setPhase("error");
     }
   }
@@ -340,74 +338,101 @@ function PuppetPage() {
     nav({ to: "/famiglia" });
   }
 
-  const dim = phase === "telling" || phase === "asking" || phase === "listening";
-
   return (
-    <div className={`fixed inset-0 z-50 flex flex-col text-foreground transition-colors duration-1000 ${dim ? "bg-black" : "bg-notte"}`}>
+    <div className={`fixed inset-0 z-50 flex flex-col text-foreground transition-colors duration-1000 ${phase === "telling" ? "bg-[#0a0520]" : "bg-notte"}`}>
       <header className="flex items-center justify-between p-4">
         <button onClick={exit} aria-label="Esci" className="grid size-10 place-items-center rounded-full bg-white/5">
           <X className="size-5" />
         </button>
         <p className="text-[10px] font-bold uppercase tracking-widest text-celeste/70">
-          {phase === "listening" ? "Ti ascolto…" :
-           phase === "thinking" ? "Sto pensando…" :
-           phase === "telling" ? "Storia in corso" :
-           phase === "done" ? "Finito!" :
+          {phase === "listening" ? "🎙 Ti ascolto…" :
+           phase === "thinking" ? "✨ Sto pensando…" :
+           phase === "telling" ? "📖 Storia in corso" :
+           phase === "done" ? "⭐ Finito!" :
            "Modalità Pupazzo"}
         </p>
         <span className="w-10" />
       </header>
 
-      <div className="flex flex-1 flex-col items-center justify-center px-6">
+      <div className="flex flex-1 flex-col items-center justify-center px-6 gap-6">
+
+        {/* Cerchio animato */}
         <div className="relative">
-          <div className={`absolute inset-0 -z-10 rounded-full blur-3xl transition-opacity duration-700 ${
-            phase === "telling" ? "bg-giallo/40 animate-breathe opacity-90" :
-            phase === "listening" ? "bg-celeste/50 animate-pulse opacity-80" :
-            phase === "thinking" ? "bg-viola/40 animate-spin-slow opacity-70" :
-            phase === "asking" ? "bg-rose-400/30 opacity-70" :
-            "bg-celeste/30 opacity-50"
+          <div className={`absolute inset-0 -z-10 rounded-full blur-3xl transition-all duration-700 ${
+            isSpeaking ? "bg-giallo/50 scale-125" :
+            isListening ? "bg-celeste/50 scale-110" :
+            phase === "thinking" ? "bg-viola/40" :
+            "bg-celeste/20"
           }`} />
-          <div className={`size-48 rounded-full transition-transform duration-700 ${
-            phase === "telling" ? "scale-110 animate-breathe bg-gradient-to-br from-giallo/30 to-rose-400/20" :
-            phase === "listening" ? "scale-105 animate-pulse bg-celeste/20" :
-            "scale-100 bg-white/5"
-          }`} />
+          <div className={`size-40 rounded-full flex items-center justify-center transition-all duration-500 ${
+            isSpeaking ? "bg-gradient-to-br from-giallo/40 to-rose-400/20 scale-110" :
+            isListening ? "bg-celeste/20 scale-105" :
+            "bg-white/5"
+          }`}>
+            <span className="text-5xl">
+              {phase === "idle" ? "🧸" :
+               phase === "thinking" ? "✨" :
+               phase === "telling" ? "📖" :
+               phase === "listening" ? "👂" :
+               phase === "done" ? "🌟" :
+               "🎙"}
+            </span>
+          </div>
         </div>
 
-        <p className={`mt-10 max-w-md text-center text-sm font-medium transition-opacity ${dim ? "opacity-40" : "opacity-90"}`}>
-          {caption}
-        </p>
+        {/* Onde AI che parla */}
+        {isSpeaking && (
+          <div className="w-full max-w-xs">
+            <p className="text-center text-[10px] uppercase tracking-widest text-giallo/60 mb-2">MilleStorie parla</p>
+            <LiveWaveform active={isSpeaking} color="rgba(245, 200, 66, 0.8)" bars={20} />
+          </div>
+        )}
+
+        {/* Onde microfono bambino */}
+        {isListening && (
+          <div className="w-full max-w-xs">
+            <p className="text-center text-[10px] uppercase tracking-widest text-celeste/60 mb-2">Ti ascolto…</p>
+            <LiveWaveform active={isListening} color="rgba(100, 220, 255, 0.8)" bars={20} />
+          </div>
+        )}
+
+        {/* Caption */}
+        {!isSpeaking && !isListening && (
+          <p className="max-w-sm text-center text-sm font-medium opacity-80">{caption}</p>
+        )}
+
+        {isSpeaking && (
+          <p className="max-w-sm text-center text-sm font-medium opacity-60 italic">{caption}</p>
+        )}
 
         {phase === "idle" && (
           <button
             onClick={start}
-            className="mt-10 rounded-full bg-giallo px-8 py-4 font-display text-base font-bold text-primary-foreground shadow-[0_10px_40px_var(--glow)]"
+            className="mt-4 rounded-full bg-giallo px-8 py-4 font-display text-base font-bold text-primary-foreground shadow-[0_10px_40px_var(--glow)]"
           >
-            Inizia a parlare
+            Inizia a parlare 🎙
           </button>
         )}
 
         {phase === "error" && (
-          <div className="mt-10 text-center space-y-4">
+          <div className="mt-4 text-center space-y-4">
             <p className="text-sm text-rose-300">🌟 Un momento magico di pausa… riprova!</p>
             <button onClick={start} className="rounded-full bg-giallo px-6 py-3 font-bold text-primary-foreground">
               Riprova
             </button>
-            <Link to="/famiglia" className="mt-2 block text-sm text-white/40">
-              Torna indietro
-            </Link>
+            <Link to="/famiglia" className="mt-2 block text-sm text-white/40">Torna indietro</Link>
           </div>
         )}
 
         {phase === "done" && (
-          <button onClick={exit} className="mt-10 rounded-full bg-white/10 px-6 py-3 text-sm font-semibold">
+          <button onClick={exit} className="mt-4 rounded-full bg-white/10 px-6 py-3 text-sm font-semibold">
             Chiudi
           </button>
         )}
       </div>
 
-      <footer className="p-4 text-center text-[10px] uppercase tracking-widest text-white/30">
-        {phase === "listening" ? "Parla liberamente…" : "Il bambino parla con MilleStorie"}
+      <footer className="p-4 text-center text-[10px] uppercase tracking-widest text-white/20">
+        {isListening ? "Parla liberamente…" : isSpeaking ? "Ascolta la storia…" : "MilleStorie · Modalità voce"}
       </footer>
     </div>
   );
