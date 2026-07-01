@@ -45,11 +45,6 @@ function NewChildPage() {
     setErr(null);
     try {
       const character = characters.find((c) => c.id === characterId);
-      if (!character) {
-        setErr("Funzionalità in aggiornamento, riprova presto!");
-        setBusy(false);
-        return;
-      }
       const c = await createChild({
         data: {
           name: name.trim(),
@@ -58,7 +53,7 @@ function NewChildPage() {
           favorite_animal: animal.trim() || null,
           fears: fears.trim() || null,
           preferred_voice: "sage",
-          puppet_character: character.id,
+          puppet_character: character?.id ?? null,
           gender,
           language,
         },
