@@ -1,4 +1,4 @@
-import { createParser } from "eventsource-parser";
+import { getAudioContext } from "./audio-context";
 
 export type TtsVoice = "shimmer" | "verse" | "alloy";
 
@@ -43,13 +43,16 @@ export function streamStoryTTS(opts: {
   onChunkStart?: (i: number) => void;
   onEnded?: () => void;
 }): StreamHandle {
-  const ctx = new AudioContext({ sampleRate: 24000 });
+  const ctx = getAudioContext();
   const gain = ctx.createGain();
   gain.connect(ctx.destination);
-  let playhead = 0;
+  let playhead = ctx.currentTime;
   let stopped = false;
   let currentRate = opts.rate ?? 1;
   const { chunks, voice, onChunkStart, onEnded } = opts;
+
+  let resolveDone!: () => void;
+  const done = new Promise<void>((r) => { resolveDone = r; });
 
   async function fetchChunk(text: string): Promise<AudioBuffer> {
     const res = await fetch("/api/tts", {
@@ -62,11 +65,11 @@ export function streamStoryTTS(opts: {
     return ctx.decodeAudioData(arrayBuffer);
   }
 
-  let resolveDone!: () => void;
-  const done = new Promise<void>((r) => { resolveDone = r; });
-
   async function run() {
     try {
+      // Assicurati che il contesto sia attivo
+      if (ctx.state === "suspended") await ctx.resume();
+
       for (let i = 0; i < chunks.length; i++) {
         if (stopped) break;
         onChunkStart?.(i);
@@ -83,7 +86,8 @@ export function streamStoryTTS(opts: {
           source.onended = () => { onEnded?.(); resolveDone(); };
         }
       }
-    } catch {
+    } catch (e) {
+      console.error("TTS error:", e);
       resolveDone();
     }
   }
@@ -93,10 +97,12 @@ export function streamStoryTTS(opts: {
   return {
     stop: () => {
       stopped = true;
-      try { ctx.close(); } catch { /* noop */ }
+      try { gain.disconnect(); } catch { /* noop */ }
       resolveDone();
     },
-    setRate: (rate: number) => { currentRate = rate; },
+    setRate: (rate: number) => {
+      currentRate = rate;
+    },
     done,
   };
 }
