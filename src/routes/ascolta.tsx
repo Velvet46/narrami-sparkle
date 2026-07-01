@@ -72,7 +72,7 @@ function PlayerPage() {
   const [savingNow, setSavingNow] = useState(false);
   const [voice, setVoice] = useState<TtsVoice>(() => {
     if (typeof window === "undefined") return "sage";
-    return (window.localStorage.getItem("millestorie:voice") as TtsVoice) || "sage";
+    return (window.localStorage.getItem("millestorie:voice") as TtsVoice) || "shimmer";
   });
   const [chunkIdx, setChunkIdx] = useState(0);
   const [loading, setLoading] = useState(false);
