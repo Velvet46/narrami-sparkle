@@ -113,7 +113,7 @@ function AuthPage() {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Nome e cognome"
-                className="glass w-full rounded-2xl px-4 py-3 text-sm outline-none"
+                className="glass w-full rounded-2xl px-4 py-3 text-base outline-none"
               />
               <input
                 type="text"
@@ -121,7 +121,7 @@ function AuthPage() {
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 placeholder="Città"
-                className="glass w-full rounded-2xl px-4 py-3 text-sm outline-none"
+                className="glass w-full rounded-2xl px-4 py-3 text-base outline-none"
               />
             </>
           )}
@@ -131,7 +131,7 @@ function AuthPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="email@famiglia.it"
-            className="glass w-full rounded-2xl px-4 py-3 text-sm outline-none"
+            className="glass w-full rounded-2xl px-4 py-3 text-base outline-none"
           />
           <input
             type="password"
@@ -140,7 +140,7 @@ function AuthPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Password"
-            className="glass w-full rounded-2xl px-4 py-3 text-sm outline-none"
+            className="glass w-full rounded-2xl px-4 py-3 text-base outline-none"
           />
           {error && <p className="text-xs text-rose-400">{error}</p>}
           <button
