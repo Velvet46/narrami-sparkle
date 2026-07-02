@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 const VOICE_MAP: Record<string, string> = {
-  shimmer: "3DPhHWXDY263XJ1d2EPN",  // Luminosa
-  verse:   "ZRKmc75tGxpIMNTEiwe0",  // Poetica
-  alloy:   "QttbagfgqUCm9K0VgUyT",  // Neutra
+  shimmer: "21m00Tcm4TlvDq8ikWAM", // Rachel — voce femminile calda
+  verse:   "AZnzlk1XvdvUeBnXmlld", // Domi — voce femminile energica
+  alloy:   "EXAVITQu4vr4xnSDxMaL", // Bella — voce femminile dolce
 };
 
 export const Route = createFileRoute("/api/tts")({
