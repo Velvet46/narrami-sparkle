@@ -1,11 +1,10 @@
 import { getAudioContext } from "./audio-context";
 
-export type TtsVoice = "shimmer" | "verse" | "alloy";
+export type TtsVoice = "shimmer" | "verse";
 
 export const VOICE_OPTIONS: { id: TtsVoice; label: string }[] = [
-  { id: "shimmer", label: "Luminosa" },
-  { id: "verse",   label: "Poetica" },
-  { id: "alloy",   label: "Neutra" },
+  { id: "shimmer", label: "Sarah" },
+  { id: "verse",   label: "Matilda" },
 ];
 
 export function chunkForTTS(text: string, maxChars = 1200): string[] {
@@ -67,9 +66,7 @@ export function streamStoryTTS(opts: {
 
   async function run() {
     try {
-      // Assicurati che il contesto sia attivo
       if (ctx.state === "suspended") await ctx.resume();
-
       for (let i = 0; i < chunks.length; i++) {
         if (stopped) break;
         onChunkStart?.(i);
@@ -100,9 +97,7 @@ export function streamStoryTTS(opts: {
       try { gain.disconnect(); } catch { /* noop */ }
       resolveDone();
     },
-    setRate: (rate: number) => {
-      currentRate = rate;
-    },
+    setRate: (rate: number) => { currentRate = rate; },
     done,
   };
 }
