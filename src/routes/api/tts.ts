@@ -1,9 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 const VOICE_MAP: Record<string, string> = {
-  shimmer: "21m00Tcm4TlvDq8ikWAM", // Rachel — voce femminile calda
-  verse:   "AZnzlk1XvdvUeBnXmlld", // Domi — voce femminile energica
-  alloy:   "EXAVITQu4vr4xnSDxMaL", // Bella — voce femminile dolce
+  shimmer: "EXAVITQu4vr4xnSDxMaL", // Sarah — calda e rassicurante
+  verse:   "XrExE9yKIg1WjnnlVkGX", // Matilda — dolce e professionale
 };
 
 export const Route = createFileRoute("/api/tts")({
@@ -40,9 +39,9 @@ export const Route = createFileRoute("/api/tts")({
                 text,
                 model_id: "eleven_multilingual_v2",
                 voice_settings: {
-                  stability: 0.5,
-                  similarity_boost: 0.75,
-                  style: 0.3,
+                  stability: 0.6,
+                  similarity_boost: 0.80,
+                  style: 0.2,
                   use_speaker_boost: true,
                 },
               }),
