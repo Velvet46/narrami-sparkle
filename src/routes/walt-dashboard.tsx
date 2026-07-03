@@ -218,6 +218,17 @@ function WaltDashboard() {
     loadAllStories();
   }
 
+  function handleExportText(s: StoryAdminRow) {
+    const header = `${s.title}\n${s.subtitle}\n\n${s.author ? `Autore/tradizione: ${s.author}\n` : ""}Genere: ${s.mode} · Età: ${s.age} · Lingua: ${s.language}\n${"—".repeat(30)}\n\n`;
+    const blob = new Blob([header + (s.content ?? "(testo non disponibile)")], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${s.title.replace(/[^a-z0-9]+/gi, "_")}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function signOut() { await supabase.auth.signOut(); nav({ to: "/" }); }
 
   const filtered = users.filter((u) => {
@@ -470,12 +481,20 @@ function WaltDashboard() {
                               <p className="text-sm font-bold text-gray-800">{s.title} {s.suspended && <span className="text-[10px] bg-gray-200 text-gray-500 rounded-full px-2 py-0.5 ml-1">sospesa</span>}</p>
                               <p className="text-[11px] text-gray-400">{s.mode} · {s.age} anni · {s.story_type}{s.author ? ` · ${s.author}` : ""}</p>
                             </div>
-                            <button
-                              onClick={() => handleToggleSuspend(s)}
-                              className={`flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-semibold transition-colors shrink-0 ${s.suspended ? "bg-emerald-100 hover:bg-emerald-200 text-emerald-700" : "bg-gray-100 hover:bg-gray-200 text-gray-600"}`}
-                            >
-                              {s.suspended ? <Play className="size-3.5" /> : <Pause className="size-3.5" />} {s.suspended ? "Riattiva" : "Sospendi"}
-                            </button>
+                            <div className="flex gap-2 shrink-0">
+                              <button
+                                onClick={() => handleExportText(s)}
+                                className="flex items-center gap-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-600 px-3 py-2 text-xs font-semibold transition-colors"
+                              >
+                                📄 Esporta testo
+                              </button>
+                              <button
+                                onClick={() => handleToggleSuspend(s)}
+                                className={`flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${s.suspended ? "bg-emerald-100 hover:bg-emerald-200 text-emerald-700" : "bg-gray-100 hover:bg-gray-200 text-gray-600"}`}
+                              >
+                                {s.suspended ? <Play className="size-3.5" /> : <Pause className="size-3.5" />} {s.suspended ? "Riattiva" : "Sospendi"}
+                              </button>
+                            </div>
                           </div>
                           <div className="flex items-center gap-2 flex-wrap bg-amber-50/60 rounded-xl p-3">
                             <Calendar className="size-3.5 text-gray-400" />

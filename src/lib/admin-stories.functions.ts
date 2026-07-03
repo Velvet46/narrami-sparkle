@@ -42,7 +42,7 @@ export const listStoriesAdmin = createServerFn({ method: "GET" })
 
     let q = context.supabase
       .from("stories")
-      .select(STORY_COLUMNS_ADMIN)
+      .select(STORY_COLUMNS_ADMIN + ",content")
       .eq("is_preset", true)
       .order("mode", { ascending: true })
       .order("age", { ascending: true });
@@ -287,7 +287,7 @@ export const searchAndProposeClassicStory = createServerFn({ method: "POST" })
         age: data.age,
         duration: TARGET_DURATION,
         cover_key: "castle",
-        review_status: "pending",
+        review_status: "pending", // <-- resta in coda finché Walt non approva
         tags,
         holiday_tag: data.holidayTag ?? null,
         source_url: found.url,
