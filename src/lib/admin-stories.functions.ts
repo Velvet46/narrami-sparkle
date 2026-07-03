@@ -307,3 +307,102 @@ export const searchAndProposeClassicStory = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true, story: row };
   });
+// ---------------------------------------------------------------------------
+// 7. IMPORTA DA LINK — come sopra ma parti da un URL che conosci già
+//    (Liber Liber, Wikisource, Progetto Gutenberg...) invece di cercare con
+//    Tavily. Utile per caricare in blocco fiabe da fonti di pubblico dominio
+//    già verificate, senza consumare le ricerche mensili gratuite.
+// ---------------------------------------------------------------------------
+const ImportFromUrlSchema = z.object({
+  url: z.string().url(),
+  age: z.enum(["3-5", "6-8", "9-12"]).default("6-8"),
+  holidayTag: z.string().max(40).optional(),
+});
+
+async function fetchPageAsSeed(url: string): Promise<TavilyResult> {
+  const res = await fetch(url, {
+    headers: { "User-Agent": "Mozilla/5.0 (compatible; WaltImportBot/1.0)" },
+  });
+  if (!res.ok) throw new Error(`Impossibile scaricare la pagina (${res.status}).`);
+  const html = await res.text();
+
+  const titleMatch = html.match(/<title[^>]*>([^<]*)<\/title>/i);
+  const title = titleMatch ? titleMatch[1].trim() : url;
+
+  const text = html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#0?39;/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return { title, url, content: text.slice(0, 4000) };
+}
+
+export const importClassicStoryFromUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => ImportFromUrlSchema.parse(input ?? {}))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+
+    const groqKey = process.env.GROQ_API_KEY;
+    if (!groqKey) throw new Error("AI non configurata.");
+
+    const seed = await fetchPageAsSeed(data.url);
+    if (!seed.content) {
+      return { ok: false, reason: "Non sono riuscito a leggere del testo da questa pagina." };
+    }
+
+    const groq = createGroq({ apiKey: groqKey });
+    const model = groq("llama-3.3-70b-versatile");
+
+    const { text } = await generateText({
+      model,
+      prompt: buildAdaptationPrompt(seed, data.age),
+      temperature: 0.85,
+    });
+
+    const titleMatch = text.match(/^TITOLO\s*:\s*(.+)/im);
+    const subtitleMatch = text.match(/^SOTTOTITOLO\s*:\s*(.+)/im);
+    const authorMatch = text.match(/^AUTORE\s*:\s*(.+)/im);
+    const tagMatch = text.match(/^TAG\s*:\s*(.+)/im);
+    const splitIdx = text.indexOf("---");
+    const content = splitIdx >= 0 ? text.slice(splitIdx + 3).trim() : text.trim();
+
+    const tags = (tagMatch?.[1] ?? "")
+      .split(",")
+      .map((t) => t.trim().toLowerCase())
+      .filter(Boolean)
+      .slice(0, 5);
+
+    const { data: row, error } = await context.supabase
+      .from("stories")
+      .insert({
+        title: (titleMatch?.[1] ?? seed.title).trim(),
+        subtitle: (subtitleMatch?.[1] ?? "").trim(),
+        content,
+        mode: MODE_FALLBACK,
+        language: "it",
+        is_preset: true,
+        story_type: data.holidayTag ? "seasonal" : "classic",
+        author: (authorMatch?.[1] ?? "Tradizione popolare").trim(),
+        collection: null,
+        age: data.age,
+        duration: TARGET_DURATION,
+        cover_key: "castle",
+        review_status: "pending", // <-- resta in coda finché Walt non approva
+        tags,
+        holiday_tag: data.holidayTag ?? null,
+        source_url: data.url,
+        expires_at: null,
+      })
+      .select(STORY_COLUMNS_ADMIN)
+      .single();
+
+    if (error) throw new Error(error.message);
+    return { ok: true, story: row };
+  });
