@@ -1,8 +1,19 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { LogOut, Users, BookOpen, Filter, ChevronDown, ChevronUp, Settings } from "lucide-react";
+import { LogOut, Users, BookOpen, Filter, ChevronDown, ChevronUp, Settings, Search, Check, X, Pause, Play, Calendar, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/millestorie-logo-orizzontale.png";
+import {
+  listStoriesAdmin,
+  listPendingReview,
+  approveStory,
+  rejectStory,
+  setStorySuspended,
+  scheduleStoryVisibility,
+  listHolidayStoriesAdmin,
+  setStoryHoliday,
+  searchAndProposeClassicStory,
+} from "@/lib/admin-stories.functions";
 
 export const Route = createFileRoute("/walt-dashboard")({
   component: WaltDashboard,
@@ -10,7 +21,15 @@ export const Route = createFileRoute("/walt-dashboard")({
 
 type ChildRow = { id: string; name: string; age_range: string; gender: string; language: string; };
 type UserRow = { id: string; email: string; full_name: string; city: string; created_at: string; children: ChildRow[]; stories_generated: number; stories_listened: number; };
-type Tab = "utenti" | "tono" | "comportamenti";
+type StoryAdminRow = {
+  id: string; title: string; subtitle: string; mode: string; language: string; age: string;
+  duration: number; cover_key: string; is_preset: boolean; story_type: "original" | "classic" | "seasonal";
+  author: string | null; collection: string | null; review_status: "pending" | "approved" | "rejected";
+  suspended: boolean; visible_from: string | null; visible_until: string | null; tags: string[];
+  holiday_tag: string | null; source_url: string | null; created_at: string; content?: string;
+};
+type Tab = "utenti" | "tono" | "comportamenti" | "storie";
+type StorieSubTab = "verifica" | "tutte" | "festivita";
 
 function WaltDashboard() {
   const nav = useNavigate();
@@ -24,6 +43,29 @@ function WaltDashboard() {
   const [promptLoading, setPromptLoading] = useState(false);
   const [promptSaved, setPromptSaved] = useState(false);
   const [behaviorLogs, setBehaviorLogs] = useState<any[]>([]);
+
+  // --- STORIE ---
+  const [storieSubTab, setStorieSubTab] = useState<StorieSubTab>("verifica");
+  const [pendingStories, setPendingStories] = useState<StoryAdminRow[]>([]);
+  const [pendingLoading, setPendingLoading] = useState(false);
+  const [searchTopic, setSearchTopic] = useState("");
+  const [searchAge, setSearchAge] = useState<"3-5" | "6-8" | "9-12">("6-8");
+  const [searchHoliday, setSearchHoliday] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [searchMsg, setSearchMsg] = useState<string | null>(null);
+
+  const [allStories, setAllStories] = useState<StoryAdminRow[]>([]);
+  const [allLoading, setAllLoading] = useState(false);
+  const [filterMode, setFilterMode] = useState("");
+  const [filterAgeStorie, setFilterAgeStorie] = useState("");
+  const [filterType, setFilterType] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [scheduleEdits, setScheduleEdits] = useState<Record<string, { from: string; until: string }>>({});
+
+  const [holidayStories, setHolidayStories] = useState<StoryAdminRow[]>([]);
+  const [holidayLoading, setHolidayLoading] = useState(false);
+  const [holidayAssignId, setHolidayAssignId] = useState("");
+  const [holidayAssignTag, setHolidayAssignTag] = useState("");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -71,6 +113,111 @@ function WaltDashboard() {
     if (data) setBehaviorLogs(data);
   }
 
+  async function loadPending() {
+    setPendingLoading(true);
+    try {
+      const rows = await listPendingReview();
+      setPendingStories(rows as StoryAdminRow[]);
+    } finally {
+      setPendingLoading(false);
+    }
+  }
+
+  async function loadAllStories() {
+    setAllLoading(true);
+    try {
+      const rows = await listStoriesAdmin({
+        data: {
+          mode: filterMode || undefined,
+          age: (filterAgeStorie || undefined) as any,
+          storyType: (filterType || undefined) as any,
+          reviewStatus: (filterStatus || undefined) as any,
+        },
+      });
+      setAllStories(rows as StoryAdminRow[]);
+    } finally {
+      setAllLoading(false);
+    }
+  }
+
+  async function loadHolidayStories() {
+    setHolidayLoading(true);
+    try {
+      const rows = await listHolidayStoriesAdmin();
+      setHolidayStories(rows as StoryAdminRow[]);
+    } finally {
+      setHolidayLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (tab !== "storie") return;
+    if (storieSubTab === "verifica") loadPending();
+    if (storieSubTab === "tutte") loadAllStories();
+    if (storieSubTab === "festivita") loadHolidayStories();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, storieSubTab]);
+
+  async function handleSearchNew() {
+    setSearching(true);
+    setSearchMsg(null);
+    try {
+      const res = await searchAndProposeClassicStory({
+        data: {
+          topic: searchTopic || undefined,
+          age: searchAge,
+          holidayTag: searchHoliday || undefined,
+        },
+      });
+      if (res.ok) {
+        setSearchMsg(`✅ Creata: "${res.story.title}" — in attesa di revisione qui sotto`);
+        loadPending();
+      } else {
+        setSearchMsg(`⚠️ ${res.reason}`);
+      }
+    } catch (e: any) {
+      setSearchMsg(`❌ Errore: ${e.message ?? "sconosciuto"}`);
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  async function handleApprove(id: string) {
+    await approveStory({ data: { id } });
+    setPendingStories((prev) => prev.filter((s) => s.id !== id));
+  }
+
+  async function handleReject(id: string) {
+    await rejectStory({ data: { id } });
+    setPendingStories((prev) => prev.filter((s) => s.id !== id));
+  }
+
+  async function handleToggleSuspend(row: StoryAdminRow) {
+    await setStorySuspended({ data: { id: row.id, suspended: !row.suspended } });
+    setAllStories((prev) => prev.map((s) => (s.id === row.id ? { ...s, suspended: !s.suspended } : s)));
+  }
+
+  async function handleSaveSchedule(id: string) {
+    const edit = scheduleEdits[id] ?? { from: "", until: "" };
+    await scheduleStoryVisibility({
+      data: {
+        id,
+        visibleFrom: edit.from ? new Date(edit.from).toISOString() : null,
+        visibleUntil: edit.until ? new Date(edit.until).toISOString() : null,
+      },
+    });
+    loadAllStories();
+  }
+
+  async function handleAssignHolidayManual() {
+    if (!holidayAssignId.trim() || !holidayAssignTag.trim()) return;
+    await setStoryHoliday({ data: { id: holidayAssignId.trim(), holidayTag: holidayAssignTag.trim() } });
+    setHolidayAssignId("");
+    setHolidayAssignTag("");
+    loadHolidayStories();
+    loadAllStories();
+  }
+
   async function signOut() { await supabase.auth.signOut(); nav({ to: "/" }); }
 
   const filtered = users.filter((u) => {
@@ -101,7 +248,7 @@ function WaltDashboard() {
       {/* Tabs */}
       <div className="border-b border-amber-200 bg-white px-6">
         <div className="flex gap-6">
-          {([["utenti", "👥 Utenti"], ["tono", "🎙 Gestione Tono"], ["comportamenti", "⚠️ Comportamenti"]] as const).map(([key, label]) => (
+          {([["utenti", "👥 Utenti"], ["storie", "📚 Storie"], ["tono", "🎙 Gestione Tono"], ["comportamenti", "⚠️ Comportamenti"]] as const).map(([key, label]) => (
             <button key={key} onClick={() => setTab(key)}
               className={`py-3 text-sm font-semibold border-b-2 transition-colors ${tab === key ? "border-amber-400 text-amber-600" : "border-transparent text-gray-400 hover:text-gray-600"}`}>
               {label}
@@ -182,6 +329,231 @@ function WaltDashboard() {
               </div>
             )}
           </>
+        )}
+
+        {/* TAB STORIE */}
+        {tab === "storie" && (
+          <div className="space-y-6">
+            <div className="flex gap-2 flex-wrap">
+              {([["verifica", "🔍 Verifica Nuove Storie"], ["tutte", "📖 Tutte le Storie"], ["festivita", "🎉 Festività"]] as const).map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => setStorieSubTab(key)}
+                  className={`rounded-xl px-4 py-2 text-xs font-semibold transition-colors ${storieSubTab === key ? "bg-amber-400 text-white" : "bg-white border border-amber-100 text-gray-500 hover:bg-amber-50"}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* --- VERIFICA NUOVE STORIE --- */}
+            {storieSubTab === "verifica" && (
+              <div className="space-y-4">
+                <div className="bg-white rounded-2xl border border-amber-100 shadow-sm p-5 space-y-3">
+                  <h2 className="text-sm font-bold text-gray-800 flex items-center gap-2"><Sparkles className="size-4 text-amber-400" /> Cerca una nuova fiaba classica</h2>
+                  <p className="text-xs text-gray-400">L'AI cerca sul web una fiaba di pubblico dominio, ne scrive una versione originale e la mette in coda per la tua approvazione qui sotto.</p>
+                  <div className="flex gap-3 flex-wrap">
+                    <input
+                      value={searchTopic}
+                      onChange={(e) => setSearchTopic(e.target.value)}
+                      placeholder='Es. "fiabe di Natale" (vuoto = a caso)'
+                      className="flex-1 min-w-[220px] rounded-xl border border-amber-100 px-4 py-2.5 text-sm outline-none focus:border-amber-400"
+                    />
+                    <select value={searchAge} onChange={(e) => setSearchAge(e.target.value as any)} className="rounded-xl border border-amber-100 px-3 py-2.5 text-sm text-gray-600 outline-none">
+                      <option value="3-5">3-5 anni</option>
+                      <option value="6-8">6-8 anni</option>
+                      <option value="9-12">9-12 anni</option>
+                    </select>
+                    <input
+                      value={searchHoliday}
+                      onChange={(e) => setSearchHoliday(e.target.value)}
+                      placeholder="Festività (opzionale, es. natale)"
+                      className="rounded-xl border border-amber-100 px-4 py-2.5 text-sm outline-none focus:border-amber-400 w-48"
+                    />
+                    <button
+                      onClick={handleSearchNew}
+                      disabled={searching}
+                      className="rounded-xl bg-amber-400 hover:bg-amber-500 px-5 py-2.5 text-sm font-bold text-white transition-colors disabled:opacity-50 flex items-center gap-2"
+                    >
+                      <Search className="size-4" /> {searching ? "Cerco…" : "Cerca fiaba"}
+                    </button>
+                  </div>
+                  {searchMsg && <p className="text-xs text-gray-500">{searchMsg}</p>}
+                </div>
+
+                <h3 className="text-xs uppercase tracking-widest text-gray-400 pt-2">In attesa di revisione ({pendingStories.length})</h3>
+                {pendingLoading ? (
+                  <p className="text-center text-sm text-gray-400 py-8">Caricamento…</p>
+                ) : pendingStories.length === 0 ? (
+                  <p className="text-center text-sm text-gray-400 py-8">Nessuna storia in coda</p>
+                ) : (
+                  <div className="space-y-3">
+                    {pendingStories.map((s) => (
+                      <div key={s.id} className="bg-white rounded-2xl border border-amber-100 shadow-sm p-5 space-y-2">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <p className="text-sm font-bold text-gray-800">{s.title}</p>
+                            <p className="text-xs text-gray-400 italic">{s.subtitle}</p>
+                            <p className="text-[11px] text-gray-400 mt-1">{s.author} · {s.age} anni · {s.story_type === "seasonal" ? `🎉 ${s.holiday_tag}` : "classica"}</p>
+                          </div>
+                          <div className="flex gap-2 shrink-0">
+                            <button onClick={() => handleApprove(s.id)} className="flex items-center gap-1 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-700 px-3 py-2 text-xs font-semibold transition-colors">
+                              <Check className="size-3.5" /> Approva
+                            </button>
+                            <button onClick={() => handleReject(s.id)} className="flex items-center gap-1 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-700 px-3 py-2 text-xs font-semibold transition-colors">
+                              <X className="size-3.5" /> Rifiuta
+                            </button>
+                          </div>
+                        </div>
+                        {s.tags?.length > 0 && (
+                          <div className="flex gap-1.5 flex-wrap">
+                            {s.tags.map((t) => (
+                              <span key={t} className="text-[10px] bg-amber-50 text-amber-600 rounded-full px-2 py-0.5">#{t}</span>
+                            ))}
+                          </div>
+                        )}
+                        {s.content && (
+                          <details className="text-xs text-gray-500">
+                            <summary className="cursor-pointer text-amber-500 font-semibold">Leggi anteprima</summary>
+                            <p className="mt-2 whitespace-pre-line leading-relaxed">{s.content.slice(0, 800)}{s.content.length > 800 ? "…" : ""}</p>
+                          </details>
+                        )}
+                        {s.source_url && <p className="text-[10px] text-gray-300 truncate">Fonte ispirazione: {s.source_url}</p>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* --- TUTTE LE STORIE --- */}
+            {storieSubTab === "tutte" && (
+              <div className="space-y-4">
+                <div className="flex gap-3 flex-wrap">
+                  <select value={filterMode} onChange={(e) => setFilterMode(e.target.value)} className="rounded-xl border border-amber-100 px-3 py-2 text-sm text-gray-600 outline-none">
+                    <option value="">Tutti i generi</option>
+                    {["avventura", "divertente", "educativa", "magica", "nanna", "sportiva"].map((m) => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                  <select value={filterAgeStorie} onChange={(e) => setFilterAgeStorie(e.target.value)} className="rounded-xl border border-amber-100 px-3 py-2 text-sm text-gray-600 outline-none">
+                    <option value="">Tutte le età</option>
+                    <option value="3-5">3-5 anni</option>
+                    <option value="6-8">6-8 anni</option>
+                    <option value="9-12">9-12 anni</option>
+                  </select>
+                  <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="rounded-xl border border-amber-100 px-3 py-2 text-sm text-gray-600 outline-none">
+                    <option value="">Tutti i tipi</option>
+                    <option value="original">Originali</option>
+                    <option value="classic">Classiche</option>
+                    <option value="seasonal">Festività</option>
+                  </select>
+                  <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="rounded-xl border border-amber-100 px-3 py-2 text-sm text-gray-600 outline-none">
+                    <option value="">Tutti gli stati</option>
+                    <option value="pending">In attesa</option>
+                    <option value="approved">Approvate</option>
+                    <option value="rejected">Rifiutate</option>
+                  </select>
+                  <button onClick={loadAllStories} className="rounded-xl bg-amber-400 hover:bg-amber-500 px-4 py-2 text-sm font-bold text-white transition-colors">Filtra</button>
+                </div>
+
+                {allLoading ? (
+                  <p className="text-center text-sm text-gray-400 py-8">Caricamento…</p>
+                ) : allStories.length === 0 ? (
+                  <p className="text-center text-sm text-gray-400 py-8">Nessuna storia trovata</p>
+                ) : (
+                  <div className="space-y-3">
+                    {allStories.map((s) => {
+                      const edit = scheduleEdits[s.id] ?? { from: "", until: "" };
+                      return (
+                        <div key={s.id} className="bg-white rounded-2xl border border-amber-100 shadow-sm p-5 space-y-3">
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <p className="text-sm font-bold text-gray-800">{s.title} {s.suspended && <span className="text-[10px] bg-gray-200 text-gray-500 rounded-full px-2 py-0.5 ml-1">sospesa</span>}</p>
+                              <p className="text-[11px] text-gray-400">{s.mode} · {s.age} anni · {s.story_type}{s.author ? ` · ${s.author}` : ""}</p>
+                            </div>
+                            <button
+                              onClick={() => handleToggleSuspend(s)}
+                              className={`flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-semibold transition-colors shrink-0 ${s.suspended ? "bg-emerald-100 hover:bg-emerald-200 text-emerald-700" : "bg-gray-100 hover:bg-gray-200 text-gray-600"}`}
+                            >
+                              {s.suspended ? <Play className="size-3.5" /> : <Pause className="size-3.5" />} {s.suspended ? "Riattiva" : "Sospendi"}
+                            </button>
+                          </div>
+                          <div className="flex items-center gap-2 flex-wrap bg-amber-50/60 rounded-xl p-3">
+                            <Calendar className="size-3.5 text-gray-400" />
+                            <span className="text-[11px] text-gray-400">Visibile dal</span>
+                            <input type="date" value={edit.from} onChange={(e) => setScheduleEdits((p) => ({ ...p, [s.id]: { ...edit, from: e.target.value } }))} className="rounded-lg border border-amber-100 px-2 py-1 text-xs" />
+                            <span className="text-[11px] text-gray-400">al</span>
+                            <input type="date" value={edit.until} onChange={(e) => setScheduleEdits((p) => ({ ...p, [s.id]: { ...edit, until: e.target.value } }))} className="rounded-lg border border-amber-100 px-2 py-1 text-xs" />
+                            <button onClick={() => handleSaveSchedule(s.id)} className="rounded-lg bg-amber-400 hover:bg-amber-500 text-white text-[11px] font-semibold px-3 py-1.5">Salva</button>
+                            {(s.visible_from || s.visible_until) && (
+                              <span className="text-[10px] text-gray-400 ml-2">
+                                attuale: {s.visible_from ? new Date(s.visible_from).toLocaleDateString("it-IT") : "sempre"} → {s.visible_until ? new Date(s.visible_until).toLocaleDateString("it-IT") : "sempre"}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* --- FESTIVITÀ --- */}
+            {storieSubTab === "festivita" && (
+              <div className="space-y-4">
+                <div className="bg-white rounded-2xl border border-amber-100 shadow-sm p-5">
+                  <h2 className="text-sm font-bold text-gray-800">🎉 Storie stagionali per festività</h2>
+                  <p className="text-xs text-gray-400 mt-1">Raggruppate per festività. Usa "Verifica Nuove Storie" indicando la festività per generarne di nuove, oppure assegna una festività a una storia già esistente qui sotto.</p>
+                </div>
+
+                {holidayLoading ? (
+                  <p className="text-center text-sm text-gray-400 py-8">Caricamento…</p>
+                ) : holidayStories.length === 0 ? (
+                  <p className="text-center text-sm text-gray-400 py-8">Nessuna storia di festività ancora</p>
+                ) : (
+                  Object.entries(
+                    holidayStories.reduce<Record<string, StoryAdminRow[]>>((acc, s) => {
+                      const key = s.holiday_tag ?? "senza festività";
+                      (acc[key] ??= []).push(s);
+                      return acc;
+                    }, {})
+                  ).map(([tag, rows]) => (
+                    <div key={tag} className="space-y-2">
+                      <h3 className="text-xs uppercase tracking-widest text-amber-500 font-bold">🎉 {tag} ({rows.length})</h3>
+                      {rows.map((s) => (
+                        <div key={s.id} className="bg-white rounded-xl border border-amber-100 shadow-sm px-4 py-3 flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-semibold text-gray-700">{s.title}</p>
+                            <p className="text-[11px] text-gray-400">{s.age} anni · {s.review_status}{s.suspended ? " · sospesa" : ""}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ))
+                )}
+
+                <div className="bg-white rounded-2xl border border-amber-100 shadow-sm p-5 space-y-2">
+                  <h3 className="text-xs font-bold text-gray-700">Assegna festività a una storia esistente</h3>
+                  <p className="text-[11px] text-gray-400">Prendi l'ID da "Tutte le Storie" e indica il nome della festività (es. natale, halloween, pasqua, carnevale).</p>
+                  <div className="flex gap-2 flex-wrap">
+                    <input
+                      value={holidayAssignId}
+                      onChange={(e) => setHolidayAssignId(e.target.value)}
+                      placeholder="ID storia"
+                      className="rounded-xl border border-amber-100 px-3 py-2 text-xs w-64"
+                    />
+                    <input
+                      value={holidayAssignTag}
+                      onChange={(e) => setHolidayAssignTag(e.target.value)}
+                      placeholder="Festività (es. natale)"
+                      className="rounded-xl border border-amber-100 px-3 py-2 text-xs w-48"
+                    />
+                    <button onClick={handleAssignHolidayManual} className="rounded-xl bg-amber-400 hover:bg-amber-500 text-white text-xs font-semibold px-4 py-2">Assegna</button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         {/* TAB GESTIONE TONO */}

@@ -14,53 +14,64 @@ export type Database = {
   }
   public: {
     Tables: {
-      characters: {
+      ai_prompts: {
         Row: {
-          accent: string
-          active: boolean
-          created_at: string
+          description: string | null
           id: string
-          image_url: string
-          name: string
-          role_title: string
-          slug: string
-          sort_order: number
-          updated_at: string
-          voice_id: string
-          voice_label: string
-          voice_persona: string
+          key: string
+          prompt: string
+          updated_at: string | null
         }
         Insert: {
-          accent?: string
-          active?: boolean
-          created_at?: string
+          description?: string | null
           id?: string
-          image_url: string
-          name: string
-          role_title?: string
-          slug: string
-          sort_order?: number
-          updated_at?: string
-          voice_id: string
-          voice_label?: string
-          voice_persona?: string
+          key: string
+          prompt: string
+          updated_at?: string | null
         }
         Update: {
-          accent?: string
-          active?: boolean
-          created_at?: string
+          description?: string | null
           id?: string
-          image_url?: string
-          name?: string
-          role_title?: string
-          slug?: string
-          sort_order?: number
-          updated_at?: string
-          voice_id?: string
-          voice_label?: string
-          voice_persona?: string
+          key?: string
+          prompt?: string
+          updated_at?: string | null
         }
         Relationships: []
+      }
+      behavior_logs: {
+        Row: {
+          child_id: string | null
+          context: string | null
+          created_at: string | null
+          id: string
+          parent_id: string | null
+          word: string | null
+        }
+        Insert: {
+          child_id?: string | null
+          context?: string | null
+          created_at?: string | null
+          id?: string
+          parent_id?: string | null
+          word?: string | null
+        }
+        Update: {
+          child_id?: string | null
+          context?: string | null
+          created_at?: string | null
+          id?: string
+          parent_id?: string | null
+          word?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "behavior_logs_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "child_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       child_profiles: {
         Row: {
@@ -107,48 +118,174 @@ export type Database = {
         }
         Relationships: []
       }
+      generic_icons: {
+        Row: {
+          family: string
+          key: string
+          label: string
+        }
+        Insert: {
+          family: string
+          key: string
+          label: string
+        }
+        Update: {
+          family?: string
+          key?: string
+          label?: string
+        }
+        Relationships: []
+      }
+      listening_sessions: {
+        Row: {
+          child_id: string | null
+          completed: boolean
+          duration_seconds: number | null
+          id: string
+          parent_id: string
+          started_at: string
+          story_id: string | null
+        }
+        Insert: {
+          child_id?: string | null
+          completed?: boolean
+          duration_seconds?: number | null
+          id?: string
+          parent_id: string
+          started_at?: string
+          story_id?: string | null
+        }
+        Update: {
+          child_id?: string | null
+          completed?: boolean
+          duration_seconds?: number | null
+          id?: string
+          parent_id?: string
+          started_at?: string
+          story_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listening_sessions_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "child_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listening_sessions_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          city: string | null
+          created_at: string | null
+          email: string | null
+          full_name: string | null
+          id: string
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id: string
+        }
+        Update: {
+          city?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
       stories: {
         Row: {
-          age: string
-          child_id: string
+          age: string | null
+          author: string | null
+          child_id: string | null
+          collection: string | null
           content: string
           cover_key: string
           created_at: string
           duration: number
+          expires_at: string | null
           favorite: boolean
+          holiday_tag: string | null
           id: string
+          is_preset: boolean
+          language: string
           mode: string
-          parent_id: string
-          subtitle: string
+          parent_id: string | null
+          review_status: string
+          source_url: string | null
+          story_type: string
+          subtitle: string | null
+          suspended: boolean
+          tags: string[]
           title: string
+          visible_from: string | null
+          visible_until: string | null
         }
         Insert: {
-          age: string
-          child_id: string
+          age?: string | null
+          author?: string | null
+          child_id?: string | null
+          collection?: string | null
           content: string
           cover_key?: string
           created_at?: string
-          duration: number
+          duration?: number
+          expires_at?: string | null
           favorite?: boolean
+          holiday_tag?: string | null
           id?: string
+          is_preset?: boolean
+          language?: string
           mode: string
-          parent_id: string
-          subtitle?: string
+          parent_id?: string | null
+          review_status?: string
+          source_url?: string | null
+          story_type?: string
+          subtitle?: string | null
+          suspended?: boolean
+          tags?: string[]
           title: string
+          visible_from?: string | null
+          visible_until?: string | null
         }
         Update: {
-          age?: string
-          child_id?: string
+          age?: string | null
+          author?: string | null
+          child_id?: string | null
+          collection?: string | null
           content?: string
           cover_key?: string
           created_at?: string
           duration?: number
+          expires_at?: string | null
           favorite?: boolean
+          holiday_tag?: string | null
           id?: string
+          is_preset?: boolean
+          language?: string
           mode?: string
-          parent_id?: string
-          subtitle?: string
+          parent_id?: string | null
+          review_status?: string
+          source_url?: string | null
+          story_type?: string
+          subtitle?: string | null
+          suspended?: boolean
+          tags?: string[]
           title?: string
+          visible_from?: string | null
+          visible_until?: string | null
         }
         Relationships: [
           {
@@ -170,7 +307,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
-          role: Database["public"]["Enums"]["app_role"]
+          role?: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
@@ -186,14 +323,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      claim_admin_if_none: { Args: never; Returns: boolean }
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
       app_role: "admin" | "user"
