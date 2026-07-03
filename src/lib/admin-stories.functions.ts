@@ -42,7 +42,7 @@ export const listStoriesAdmin = createServerFn({ method: "GET" })
 
     let q = context.supabase
       .from("stories")
-      .select(STORY_COLUMNS_ADMIN + ",content")
+      .select(STORY_COLUMNS_ADMIN)
       .eq("is_preset", true)
       .order("mode", { ascending: true })
       .order("age", { ascending: true });
@@ -207,7 +207,7 @@ async function searchPublicDomainTale(topic: string): Promise<TavilyResult | nul
   return { title: first.title, url: first.url, content: first.content };
 }
 
-const MODE_FALLBACK = "magica";
+const VALID_MODES = ["avventura", "divertente", "educativa", "magica", "nanna", "sportiva"] as const;
 const WORDS_PER_MINUTE = 130;
 const TARGET_DURATION = 5;
 
@@ -232,6 +232,8 @@ Formato di output ESATTO (mantieni le etichette in maiuscolo):
 TITOLO: <titolo, max 6 parole>
 SOTTOTITOLO: <una frase poetica, max 12 parole>
 AUTORE: <nome dell'autore/tradizione originale della fiaba, es. "Fratelli Grimm", "Tradizione popolare italiana">
+GENERE: <scegli UNA sola parola tra: avventura, divertente, educativa, magica, nanna, sportiva — quella più adatta alla storia>
+NOTA_PUBBLICO_DOMINIO: <una frase che spiega perché questa fiaba è di pubblico dominio, es. "Fiaba raccolta dai Fratelli Grimm, morti nel 1859 e nel 1863: opera di pubblico dominio da oltre un secolo">
 TAG: <3-5 parole chiave separate da virgola sugli argomenti/temi della storia, es. coraggio, amicizia, bosco, magia>
 ---
 <corpo della storia in italiano, paragrafi brevi separati da riga vuota>`;
@@ -262,9 +264,15 @@ export const searchAndProposeClassicStory = createServerFn({ method: "POST" })
     const titleMatch = text.match(/^TITOLO\s*:\s*(.+)/im);
     const subtitleMatch = text.match(/^SOTTOTITOLO\s*:\s*(.+)/im);
     const authorMatch = text.match(/^AUTORE\s*:\s*(.+)/im);
+    const modeMatch = text.match(/^GENERE\s*:\s*(.+)/im);
+    const pdNoteMatch = text.match(/^NOTA_PUBBLICO_DOMINIO\s*:\s*(.+)/im);
     const tagMatch = text.match(/^TAG\s*:\s*(.+)/im);
     const splitIdx = text.indexOf("---");
     const content = splitIdx >= 0 ? text.slice(splitIdx + 3).trim() : text.trim();
+
+    const rawMode = (modeMatch?.[1] ?? "").trim().toLowerCase();
+    const mode = (VALID_MODES as readonly string[]).includes(rawMode) ? rawMode : "magica";
+    const pdNote = (pdNoteMatch?.[1] ?? "").trim();
 
     const tags = (tagMatch?.[1] ?? "")
       .split(",")
@@ -278,16 +286,16 @@ export const searchAndProposeClassicStory = createServerFn({ method: "POST" })
         title: (titleMatch?.[1] ?? found.title).trim(),
         subtitle: (subtitleMatch?.[1] ?? "").trim(),
         content,
-        mode: MODE_FALLBACK,
+        mode,
         language: "it",
         is_preset: true,
         story_type: data.holidayTag ? "seasonal" : "classic",
         author: (authorMatch?.[1] ?? "Tradizione popolare").trim(),
-        collection: null,
+        collection: pdNote || null,
         age: data.age,
         duration: TARGET_DURATION,
         cover_key: "castle",
-        review_status: "pending", // <-- resta in coda finché Walt non approva
+        review_status: "pending",
         tags,
         holiday_tag: data.holidayTag ?? null,
         source_url: found.url,
