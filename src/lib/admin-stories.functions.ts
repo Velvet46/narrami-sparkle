@@ -180,9 +180,10 @@ export const rejectStory = createServerFn({ method: "POST" })
 // ---------------------------------------------------------------------------
 const SearchInputSchema = z.object({
   topic: z.string().max(120).optional(), // es. "fiabe di Natale pubblico dominio"
-  age: z.enum(["3-5", "6-8", "9-12"]).default("6-8"),
   holidayTag: z.string().max(40).optional(), // se presente, la storia va in Festività
 });
+
+const VALID_AGES = ["3-5", "6-8", "9-12"] as const;
 
 type TavilyResult = { title: string; url: string; content: string };
 
@@ -211,18 +212,18 @@ const VALID_MODES = ["avventura", "divertente", "educativa", "magica", "nanna", 
 const WORDS_PER_MINUTE = 130;
 const TARGET_DURATION = 5;
 
-function buildAdaptationPrompt(seed: TavilyResult, age: string) {
+function buildAdaptationPrompt(seed: TavilyResult) {
   const targetWords = TARGET_DURATION * WORDS_PER_MINUTE;
   return `Di seguito trovi il RISULTATO DI UNA RICERCA WEB su una fiaba classica di pubblico dominio (titolo e breve descrizione, NON testo integrale protetto).
 
 Titolo trovato: ${seed.title}
 Estratto/descrizione trovata: ${seed.content.slice(0, 600)}
 
-Il tuo compito: scrivi una RISCRITTURA COMPLETAMENTE ORIGINALE in italiano di questa fiaba classica, pensata per bambini di ${age} anni. NON copiare o tradurre il testo trovato: usalo solo per capire di quale fiaba si tratta e qual è la trama generale, poi scrivi con parole tue da zero.
+Il tuo compito: scrivi una RISCRITTURA COMPLETAMENTE ORIGINALE in italiano di questa fiaba classica per bambini. Prima di scrivere, valuta TU STESSO a quale fascia d'età si adatta meglio il contenuto originale (temi, complessità, elementi spaventosi) tra: 3-5 anni, 6-8 anni, 9-12 anni. NON copiare o tradurre il testo trovato: usalo solo per capire di quale fiaba si tratta e qual è la trama generale, poi scrivi con parole tue da zero, calibrando linguaggio e ritmo sulla fascia d'età che hai scelto.
 
 Regole assolute di sicurezza per bambini:
 - Ammorbidisci elementi spaventosi (niente violenza esplicita, morte cruda).
-- Linguaggio semplice, ritmo musicale, frasi brevi per età ${age}.
+- Linguaggio e ritmo coerenti con la fascia d'età che scegli.
 - Nessun marchio, persona reale, religione, politica.
 - Finale sereno.
 
@@ -233,10 +234,17 @@ TITOLO: <titolo, max 6 parole>
 SOTTOTITOLO: <una frase poetica, max 12 parole>
 AUTORE: <nome dell'autore/tradizione originale della fiaba, es. "Fratelli Grimm", "Tradizione popolare italiana">
 GENERE: <scegli UNA sola parola tra: avventura, divertente, educativa, magica, nanna, sportiva — quella più adatta alla storia>
+ETA: <scegli UNA sola tra: 3-5, 6-8, 9-12 — quella più adatta al contenuto>
 NOTA_PUBBLICO_DOMINIO: <una frase che spiega perché questa fiaba è di pubblico dominio, es. "Fiaba raccolta dai Fratelli Grimm, morti nel 1859 e nel 1863: opera di pubblico dominio da oltre un secolo">
 TAG: <3-5 parole chiave separate da virgola sugli argomenti/temi della storia, es. coraggio, amicizia, bosco, magia>
 ---
 <corpo della storia in italiano, paragrafi brevi separati da riga vuota>`;
+}
+
+function parseAge(text: string): (typeof VALID_AGES)[number] {
+  const etaMatch = text.match(/^ETA\s*:\s*(.+)/im);
+  const raw = (etaMatch?.[1] ?? "").trim();
+  return (VALID_AGES as readonly string[]).includes(raw) ? (raw as (typeof VALID_AGES)[number]) : "6-8";
 }
 
 export const searchAndProposeClassicStory = createServerFn({ method: "POST" })
@@ -257,7 +265,7 @@ export const searchAndProposeClassicStory = createServerFn({ method: "POST" })
 
     const { text } = await generateText({
       model,
-      prompt: buildAdaptationPrompt(found, data.age),
+      prompt: buildAdaptationPrompt(found),
       temperature: 0.85,
     });
 
@@ -273,6 +281,7 @@ export const searchAndProposeClassicStory = createServerFn({ method: "POST" })
     const rawMode = (modeMatch?.[1] ?? "").trim().toLowerCase();
     const mode = (VALID_MODES as readonly string[]).includes(rawMode) ? rawMode : "magica";
     const pdNote = (pdNoteMatch?.[1] ?? "").trim();
+    const age = parseAge(text);
 
     const tags = (tagMatch?.[1] ?? "")
       .split(",")
@@ -292,7 +301,7 @@ export const searchAndProposeClassicStory = createServerFn({ method: "POST" })
         story_type: data.holidayTag ? "seasonal" : "classic",
         author: (authorMatch?.[1] ?? "Tradizione popolare").trim(),
         collection: pdNote || null,
-        age: data.age,
+        age,
         duration: TARGET_DURATION,
         cover_key: "castle",
         review_status: "pending",
@@ -315,7 +324,6 @@ export const searchAndProposeClassicStory = createServerFn({ method: "POST" })
 // ---------------------------------------------------------------------------
 const ImportFromUrlSchema = z.object({
   url: z.string().url(),
-  age: z.enum(["3-5", "6-8", "9-12"]).default("6-8"),
   holidayTag: z.string().max(40).optional(),
 });
 
@@ -362,7 +370,7 @@ export const importClassicStoryFromUrl = createServerFn({ method: "POST" })
 
     const { text } = await generateText({
       model,
-      prompt: buildAdaptationPrompt(seed, data.age),
+      prompt: buildAdaptationPrompt(seed),
       temperature: 0.85,
     });
 
@@ -372,6 +380,7 @@ export const importClassicStoryFromUrl = createServerFn({ method: "POST" })
     const tagMatch = text.match(/^TAG\s*:\s*(.+)/im);
     const splitIdx = text.indexOf("---");
     const content = splitIdx >= 0 ? text.slice(splitIdx + 3).trim() : text.trim();
+    const age = parseAge(text);
 
     const tags = (tagMatch?.[1] ?? "")
       .split(",")
@@ -391,7 +400,7 @@ export const importClassicStoryFromUrl = createServerFn({ method: "POST" })
         story_type: data.holidayTag ? "seasonal" : "classic",
         author: (authorMatch?.[1] ?? "Tradizione popolare").trim(),
         collection: null,
-        age: data.age,
+        age,
         duration: TARGET_DURATION,
         cover_key: "castle",
         review_status: "pending", // <-- resta in coda finché Walt non approva
@@ -406,3 +415,165 @@ export const importClassicStoryFromUrl = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true, story: row };
   });
+
+// ---------------------------------------------------------------------------
+// 8. CORREGGI ETÀ — usato nella coda di revisione se l'AI ha sbagliato fascia
+// ---------------------------------------------------------------------------
+export const updateStoryAge = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ id: z.string().uuid(), age: z.enum(["3-5", "6-8", "9-12"]) }).parse(input)
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { error } = await context.supabase
+      .from("stories")
+      .update({ age: data.age })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// ---------------------------------------------------------------------------
+// 9. FONTI — lista di siti da cui pescare fiabe (usata dal cron giornaliero)
+// ---------------------------------------------------------------------------
+export const listStorySources = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { data, error } = await context.supabase
+      .from("story_sources")
+      .select("id,url,label,active,last_used_at,created_at")
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
+export const addStorySource = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ url: z.string().url(), label: z.string().max(80).optional() }).parse(input)
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { error } = await context.supabase
+      .from("story_sources")
+      .insert({ url: data.url, label: data.label ?? null });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const removeStorySource = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { error } = await context.supabase.from("story_sources").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const toggleStorySource = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ id: z.string().uuid(), active: z.boolean() }).parse(input)
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { error } = await context.supabase
+      .from("story_sources")
+      .update({ active: data.active })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// ---------------------------------------------------------------------------
+// 10. RICERCA AUTOMATICA GIORNALIERA — chiamata dal cron (src/routes/api/cron/*)
+//     NON è una createServerFn: niente sessione utente nel cron, la sicurezza
+//     è garantita dal secret verificato nella API route che la invoca.
+//     Usa un client Supabase con service role, passato dal chiamante.
+// ---------------------------------------------------------------------------
+export async function runDailySourceSearch(supabaseServiceClient: any) {
+  const { data: sources, error: srcErr } = await supabaseServiceClient
+    .from("story_sources")
+    .select("id,url,active,last_used_at")
+    .eq("active", true)
+    .order("last_used_at", { ascending: true, nullsFirst: true })
+    .limit(1);
+
+  if (srcErr) throw new Error(srcErr.message);
+  const source = sources?.[0];
+  if (!source) return { ok: false, reason: "Nessuna fonte attiva configurata." };
+
+  const groqKey = process.env.GROQ_API_KEY;
+  if (!groqKey) throw new Error("AI non configurata.");
+
+  const seed = await fetchPageAsSeed(source.url);
+  if (!seed.content) {
+    await supabaseServiceClient
+      .from("story_sources")
+      .update({ last_used_at: new Date().toISOString() })
+      .eq("id", source.id);
+    return { ok: false, reason: "Pagina della fonte non leggibile, riprovo domani con la prossima." };
+  }
+
+  const groq = createGroq({ apiKey: groqKey });
+  const model = groq("llama-3.3-70b-versatile");
+
+  const { text } = await generateText({
+    model,
+    prompt: buildAdaptationPrompt(seed),
+    temperature: 0.85,
+  });
+
+  const titleMatch = text.match(/^TITOLO\s*:\s*(.+)/im);
+  const subtitleMatch = text.match(/^SOTTOTITOLO\s*:\s*(.+)/im);
+  const authorMatch = text.match(/^AUTORE\s*:\s*(.+)/im);
+  const modeMatch = text.match(/^GENERE\s*:\s*(.+)/im);
+  const pdNoteMatch = text.match(/^NOTA_PUBBLICO_DOMINIO\s*:\s*(.+)/im);
+  const tagMatch = text.match(/^TAG\s*:\s*(.+)/im);
+  const splitIdx = text.indexOf("---");
+  const content = splitIdx >= 0 ? text.slice(splitIdx + 3).trim() : text.trim();
+  const rawMode = (modeMatch?.[1] ?? "").trim().toLowerCase();
+  const mode = (VALID_MODES as readonly string[]).includes(rawMode) ? rawMode : "magica";
+  const age = parseAge(text);
+  const tags = (tagMatch?.[1] ?? "")
+    .split(",")
+    .map((t: string) => t.trim().toLowerCase())
+    .filter(Boolean)
+    .slice(0, 5);
+
+  const { data: row, error } = await supabaseServiceClient
+    .from("stories")
+    .insert({
+      title: (titleMatch?.[1] ?? seed.title).trim(),
+      subtitle: (subtitleMatch?.[1] ?? "").trim(),
+      content,
+      mode,
+      language: "it",
+      is_preset: true,
+      story_type: "classic",
+      author: (authorMatch?.[1] ?? "Tradizione popolare").trim(),
+      collection: (pdNoteMatch?.[1] ?? "").trim() || null,
+      age,
+      duration: TARGET_DURATION,
+      cover_key: "castle",
+      review_status: "pending",
+      tags,
+      holiday_tag: null,
+      source_url: source.url,
+      expires_at: null,
+    })
+    .select("id,title")
+    .single();
+
+  if (error) throw new Error(error.message);
+
+  await supabaseServiceClient
+    .from("story_sources")
+    .update({ last_used_at: new Date().toISOString() })
+    .eq("id", source.id);
+
+  return { ok: true, story: row };
+}

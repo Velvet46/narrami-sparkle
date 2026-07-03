@@ -14,6 +14,11 @@ import {
   setStoryHoliday,
   searchAndProposeClassicStory,
   importClassicStoryFromUrl,
+  updateStoryAge,
+  listStorySources,
+  addStorySource,
+  removeStorySource,
+  toggleStorySource,
 } from "@/lib/admin-stories.functions";
 
 export const Route = createFileRoute("/walt-dashboard")({
@@ -30,7 +35,7 @@ type StoryAdminRow = {
   holiday_tag: string | null; source_url: string | null; created_at: string; content?: string;
 };
 type Tab = "utenti" | "tono" | "comportamenti" | "storie";
-type StorieSubTab = "verifica" | "tutte" | "festivita";
+type StorieSubTab = "verifica" | "tutte" | "festivita" | "fonti";
 
 function WaltDashboard() {
   const nav = useNavigate();
@@ -74,6 +79,17 @@ function WaltDashboard() {
   const [holidayLoading, setHolidayLoading] = useState(false);
   const [holidayAssignId, setHolidayAssignId] = useState("");
   const [holidayAssignTag, setHolidayAssignTag] = useState("");
+
+  // --- FONTI (per ricerca automatica giornaliera) ---
+  type SourceRow = { id: string; url: string; label: string | null; active: boolean; last_used_at: string | null; created_at: string };
+  const [sources, setSources] = useState<SourceRow[]>([]);
+  const [sourcesLoading, setSourcesLoading] = useState(false);
+  const [newSourceUrl, setNewSourceUrl] = useState("");
+  const [newSourceLabel, setNewSourceLabel] = useState("");
+  const [sourceMsg, setSourceMsg] = useState<string | null>(null);
+
+  // --- CORREZIONE ETÀ in fase di revisione ---
+  const [ageSaving, setAgeSaving] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -158,11 +174,22 @@ function WaltDashboard() {
     }
   }
 
+  async function loadSources() {
+    setSourcesLoading(true);
+    try {
+      const rows = await listStorySources();
+      setSources(rows as SourceRow[]);
+    } finally {
+      setSourcesLoading(false);
+    }
+  }
+
   useEffect(() => {
     if (tab !== "storie") return;
     if (storieSubTab === "verifica") loadPending();
     if (storieSubTab === "tutte") loadAllStories();
     if (storieSubTab === "festivita") loadHolidayStories();
+    if (storieSubTab === "fonti") loadSources();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, storieSubTab]);
 
@@ -250,6 +277,40 @@ function WaltDashboard() {
     setHolidayAssignTag("");
     loadHolidayStories();
     loadAllStories();
+  }
+
+  async function handleAddSource() {
+    if (!newSourceUrl.trim()) return;
+    setSourceMsg(null);
+    try {
+      await addStorySource({ data: { url: newSourceUrl.trim(), label: newSourceLabel.trim() || undefined } });
+      setNewSourceUrl("");
+      setNewSourceLabel("");
+      setSourceMsg("✅ Fonte aggiunta");
+      loadSources();
+    } catch (e: any) {
+      setSourceMsg(`❌ Errore: ${e.message ?? "sconosciuto"}`);
+    }
+  }
+
+  async function handleRemoveSource(id: string) {
+    await removeStorySource({ data: { id } });
+    setSources((prev) => prev.filter((s) => s.id !== id));
+  }
+
+  async function handleToggleSource(row: SourceRow) {
+    await toggleStorySource({ data: { id: row.id, active: !row.active } });
+    setSources((prev) => prev.map((s) => (s.id === row.id ? { ...s, active: !s.active } : s)));
+  }
+
+  async function handleAgeChange(id: string, age: string) {
+    setAgeSaving(id);
+    try {
+      await updateStoryAge({ data: { id, age: age as "3-5" | "6-8" | "9-12" } });
+      setPendingStories((prev) => prev.map((s) => (s.id === id ? { ...s, age } : s)));
+    } finally {
+      setAgeSaving(null);
+    }
   }
 
   async function signOut() { await supabase.auth.signOut(); nav({ to: "/" }); }
@@ -369,7 +430,7 @@ function WaltDashboard() {
         {tab === "storie" && (
           <div className="space-y-6">
             <div className="flex gap-2 flex-wrap">
-              {([["verifica", "🔍 Verifica Nuove Storie"], ["tutte", "📖 Tutte le Storie"], ["festivita", "🎉 Festività"]] as const).map(([key, label]) => (
+              {([["verifica", "🔍 Verifica Nuove Storie"], ["tutte", "📖 Tutte le Storie"], ["festivita", "🎉 Festività"], ["fonti", "🌐 Fonti"]] as const).map(([key, label]) => (
                 <button
                   key={key}
                   onClick={() => setStorieSubTab(key)}
@@ -460,7 +521,22 @@ function WaltDashboard() {
                           <div>
                             <p className="text-sm font-bold text-gray-800">{s.title}</p>
                             <p className="text-xs text-gray-400 italic">{s.subtitle}</p>
-                            <p className="text-[11px] text-gray-400 mt-1">{s.author} · {s.mode} · {s.age} anni · {s.story_type === "seasonal" ? `🎉 ${s.holiday_tag}` : "classica"}</p>
+                            <div className="flex items-center gap-1.5 mt-1">
+                              <p className="text-[11px] text-gray-400">{s.author} · {s.mode} ·</p>
+                              <select
+                                value={s.age}
+                                onChange={(e) => handleAgeChange(s.id, e.target.value)}
+                                disabled={ageSaving === s.id}
+                                className="text-[11px] text-gray-600 border border-amber-100 rounded-md px-1 py-0.5 outline-none disabled:opacity-50"
+                              >
+                                <option value="3-5">3-5 anni</option>
+                                <option value="6-8">6-8 anni</option>
+                                <option value="9-12">9-12 anni</option>
+                              </select>
+                              <p className="text-[11px] text-gray-400">· {s.story_type === "seasonal" ? `🎉 ${s.holiday_tag}` : "classica"}</p>
+                              {ageSaving === s.id && <span className="text-[10px] text-amber-400">salvo…</span>}
+                            </div>
+                            <p className="text-[10px] text-blue-500 mt-0.5">🤖 età suggerita dall'AI, correggila se serve prima di approvare</p>
                             {s.collection && <p className="text-[10px] text-emerald-600 mt-1">✓ {s.collection}</p>}
                           </div>
                           <div className="flex gap-2 shrink-0">
@@ -547,9 +623,9 @@ function WaltDashboard() {
                           <div className="flex items-center gap-2 flex-wrap bg-amber-50/60 rounded-xl p-3">
                             <Calendar className="size-3.5 text-gray-400" />
                             <span className="text-[11px] text-gray-400">Visibile dal</span>
-                            <input type="date" value={edit.from} onChange={(e) => setScheduleEdits((p) => ({ ...p, [s.id]: { ...edit, from: e.target.value } }))} className="rounded-lg border border-amber-100 px-2 py-1 text-xs" />
+                            <input type="date" value={edit.from} onChange={(e) => setScheduleEdits((p) => ({ ...p, [s.id]: { ...edit, from: e.target.value } }))} className="rounded-lg border border-amber-100 px-2 py-1 text-xs text-blue-600 bg-white" />
                             <span className="text-[11px] text-gray-400">al</span>
-                            <input type="date" value={edit.until} onChange={(e) => setScheduleEdits((p) => ({ ...p, [s.id]: { ...edit, until: e.target.value } }))} className="rounded-lg border border-amber-100 px-2 py-1 text-xs" />
+                            <input type="date" value={edit.until} onChange={(e) => setScheduleEdits((p) => ({ ...p, [s.id]: { ...edit, until: e.target.value } }))} className="rounded-lg border border-amber-100 px-2 py-1 text-xs text-blue-600 bg-white" />
                             <button onClick={() => handleSaveSchedule(s.id)} className="rounded-lg bg-amber-400 hover:bg-amber-500 text-white text-[11px] font-semibold px-3 py-1.5">Salva</button>
                             {(s.visible_from || s.visible_until) && (
                               <span className="text-[10px] text-gray-400 ml-2">
@@ -560,6 +636,76 @@ function WaltDashboard() {
                         </div>
                       );
                     })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* --- FONTI --- */}
+            {storieSubTab === "fonti" && (
+              <div className="space-y-4">
+                <div className="bg-white rounded-2xl border border-amber-100 shadow-sm p-5">
+                  <h2 className="text-sm font-bold text-gray-800">🌐 Fonti per la ricerca automatica giornaliera</h2>
+                  <p className="text-xs text-gray-400 mt-1">Ogni giorno il sistema pesca automaticamente da una fonte attiva (quella usata meno di recente) e propone una nuova fiaba in "Verifica Nuove Storie". Disattiva una fonte per escluderla senza cancellarla.</p>
+                </div>
+
+                <div className="bg-white rounded-2xl border border-amber-100 shadow-sm p-5 space-y-3">
+                  <h3 className="text-xs font-bold text-gray-700">Aggiungi una fonte</h3>
+                  <div className="flex gap-3 flex-wrap">
+                    <input
+                      value={newSourceUrl}
+                      onChange={(e) => setNewSourceUrl(e.target.value)}
+                      placeholder="https://www.liberliber.it/..."
+                      className="flex-1 min-w-[220px] rounded-xl border border-amber-100 px-4 py-2.5 text-sm outline-none focus:border-amber-400"
+                    />
+                    <input
+                      value={newSourceLabel}
+                      onChange={(e) => setNewSourceLabel(e.target.value)}
+                      placeholder="Etichetta (opzionale, es. Liber Liber)"
+                      className="rounded-xl border border-amber-100 px-4 py-2.5 text-sm outline-none focus:border-amber-400 w-56"
+                    />
+                    <button
+                      onClick={handleAddSource}
+                      disabled={!newSourceUrl.trim()}
+                      className="rounded-xl bg-amber-400 hover:bg-amber-500 px-5 py-2.5 text-sm font-bold text-white transition-colors disabled:opacity-50"
+                    >
+                      Aggiungi
+                    </button>
+                  </div>
+                  {sourceMsg && <p className="text-xs text-gray-500">{sourceMsg}</p>}
+                </div>
+
+                {sourcesLoading ? (
+                  <p className="text-center text-sm text-gray-400 py-8">Caricamento…</p>
+                ) : sources.length === 0 ? (
+                  <p className="text-center text-sm text-gray-400 py-8">Nessuna fonte configurata ancora</p>
+                ) : (
+                  <div className="space-y-2">
+                    {sources.map((s) => (
+                      <div key={s.id} className="bg-white rounded-xl border border-amber-100 shadow-sm px-4 py-3 flex items-center justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-gray-700 truncate">{s.label || s.url}</p>
+                          <p className="text-[11px] text-gray-400 truncate">{s.url}</p>
+                          <p className="text-[10px] text-gray-300">
+                            {s.last_used_at ? `ultima volta usata: ${new Date(s.last_used_at).toLocaleDateString("it-IT")}` : "mai usata"}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            onClick={() => handleToggleSource(s)}
+                            className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${s.active ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}
+                          >
+                            {s.active ? "Attiva" : "Disattiva"}
+                          </button>
+                          <button
+                            onClick={() => handleRemoveSource(s.id)}
+                            className="rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-700 px-3 py-1.5 text-xs font-semibold transition-colors"
+                          >
+                            Rimuovi
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>

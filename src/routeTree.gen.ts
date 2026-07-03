@@ -21,10 +21,12 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiTtsRouteImport } from './routes/api/tts'
 import { Route as ApiSttRouteImport } from './routes/api/stt'
+import { Route as AdminWaltRouteImport } from './routes/admin/walt'
 import { Route as AuthenticatedPuppetRouteImport } from './routes/_authenticated/puppet'
 import { Route as AuthenticatedParlaRouteImport } from './routes/_authenticated/parla'
 import { Route as AuthenticatedFamigliaRouteImport } from './routes/_authenticated/famiglia'
 import { Route as ApiElevenlabsPreviewRouteImport } from './routes/api/elevenlabs/preview'
+import { Route as ApiCronDailyStoryRouteImport } from './routes/api/cron/daily-story'
 import { Route as AuthenticatedBambinoNuovoRouteImport } from './routes/_authenticated/bambino.nuovo'
 import { Route as AuthenticatedAdminPersonaggiRouteImport } from './routes/_authenticated/admin.personaggi'
 
@@ -87,6 +89,11 @@ const ApiSttRoute = ApiSttRouteImport.update({
   path: '/api/stt',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminWaltRoute = AdminWaltRouteImport.update({
+  id: '/admin/walt',
+  path: '/admin/walt',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedPuppetRoute = AuthenticatedPuppetRouteImport.update({
   id: '/puppet',
   path: '/puppet',
@@ -105,6 +112,11 @@ const AuthenticatedFamigliaRoute = AuthenticatedFamigliaRouteImport.update({
 const ApiElevenlabsPreviewRoute = ApiElevenlabsPreviewRouteImport.update({
   id: '/api/elevenlabs/preview',
   path: '/api/elevenlabs/preview',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCronDailyStoryRoute = ApiCronDailyStoryRouteImport.update({
+  id: '/api/cron/daily-story',
+  path: '/api/cron/daily-story',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedBambinoNuovoRoute =
@@ -133,10 +145,12 @@ export interface FileRoutesByFullPath {
   '/famiglia': typeof AuthenticatedFamigliaRoute
   '/parla': typeof AuthenticatedParlaRoute
   '/puppet': typeof AuthenticatedPuppetRoute
+  '/admin/walt': typeof AdminWaltRoute
   '/api/stt': typeof ApiSttRoute
   '/api/tts': typeof ApiTtsRoute
   '/admin/personaggi': typeof AuthenticatedAdminPersonaggiRoute
   '/bambino/nuovo': typeof AuthenticatedBambinoNuovoRoute
+  '/api/cron/daily-story': typeof ApiCronDailyStoryRoute
   '/api/elevenlabs/preview': typeof ApiElevenlabsPreviewRoute
 }
 export interface FileRoutesByTo {
@@ -152,10 +166,12 @@ export interface FileRoutesByTo {
   '/famiglia': typeof AuthenticatedFamigliaRoute
   '/parla': typeof AuthenticatedParlaRoute
   '/puppet': typeof AuthenticatedPuppetRoute
+  '/admin/walt': typeof AdminWaltRoute
   '/api/stt': typeof ApiSttRoute
   '/api/tts': typeof ApiTtsRoute
   '/admin/personaggi': typeof AuthenticatedAdminPersonaggiRoute
   '/bambino/nuovo': typeof AuthenticatedBambinoNuovoRoute
+  '/api/cron/daily-story': typeof ApiCronDailyStoryRoute
   '/api/elevenlabs/preview': typeof ApiElevenlabsPreviewRoute
 }
 export interface FileRoutesById {
@@ -173,10 +189,12 @@ export interface FileRoutesById {
   '/_authenticated/famiglia': typeof AuthenticatedFamigliaRoute
   '/_authenticated/parla': typeof AuthenticatedParlaRoute
   '/_authenticated/puppet': typeof AuthenticatedPuppetRoute
+  '/admin/walt': typeof AdminWaltRoute
   '/api/stt': typeof ApiSttRoute
   '/api/tts': typeof ApiTtsRoute
   '/_authenticated/admin/personaggi': typeof AuthenticatedAdminPersonaggiRoute
   '/_authenticated/bambino/nuovo': typeof AuthenticatedBambinoNuovoRoute
+  '/api/cron/daily-story': typeof ApiCronDailyStoryRoute
   '/api/elevenlabs/preview': typeof ApiElevenlabsPreviewRoute
 }
 export interface FileRouteTypes {
@@ -194,10 +212,12 @@ export interface FileRouteTypes {
     | '/famiglia'
     | '/parla'
     | '/puppet'
+    | '/admin/walt'
     | '/api/stt'
     | '/api/tts'
     | '/admin/personaggi'
     | '/bambino/nuovo'
+    | '/api/cron/daily-story'
     | '/api/elevenlabs/preview'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -213,10 +233,12 @@ export interface FileRouteTypes {
     | '/famiglia'
     | '/parla'
     | '/puppet'
+    | '/admin/walt'
     | '/api/stt'
     | '/api/tts'
     | '/admin/personaggi'
     | '/bambino/nuovo'
+    | '/api/cron/daily-story'
     | '/api/elevenlabs/preview'
   id:
     | '__root__'
@@ -233,10 +255,12 @@ export interface FileRouteTypes {
     | '/_authenticated/famiglia'
     | '/_authenticated/parla'
     | '/_authenticated/puppet'
+    | '/admin/walt'
     | '/api/stt'
     | '/api/tts'
     | '/_authenticated/admin/personaggi'
     | '/_authenticated/bambino/nuovo'
+    | '/api/cron/daily-story'
     | '/api/elevenlabs/preview'
   fileRoutesById: FileRoutesById
 }
@@ -251,8 +275,10 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   WaltRoute: typeof WaltRoute
   WaltDashboardRoute: typeof WaltDashboardRoute
+  AdminWaltRoute: typeof AdminWaltRoute
   ApiSttRoute: typeof ApiSttRoute
   ApiTtsRoute: typeof ApiTtsRoute
+  ApiCronDailyStoryRoute: typeof ApiCronDailyStoryRoute
   ApiElevenlabsPreviewRoute: typeof ApiElevenlabsPreviewRoute
 }
 
@@ -342,6 +368,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSttRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/walt': {
+      id: '/admin/walt'
+      path: '/admin/walt'
+      fullPath: '/admin/walt'
+      preLoaderRoute: typeof AdminWaltRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/puppet': {
       id: '/_authenticated/puppet'
       path: '/puppet'
@@ -368,6 +401,13 @@ declare module '@tanstack/react-router' {
       path: '/api/elevenlabs/preview'
       fullPath: '/api/elevenlabs/preview'
       preLoaderRoute: typeof ApiElevenlabsPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/cron/daily-story': {
+      id: '/api/cron/daily-story'
+      path: '/api/cron/daily-story'
+      fullPath: '/api/cron/daily-story'
+      preLoaderRoute: typeof ApiCronDailyStoryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/bambino/nuovo': {
@@ -417,8 +457,10 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   WaltRoute: WaltRoute,
   WaltDashboardRoute: WaltDashboardRoute,
+  AdminWaltRoute: AdminWaltRoute,
   ApiSttRoute: ApiSttRoute,
   ApiTtsRoute: ApiTtsRoute,
+  ApiCronDailyStoryRoute: ApiCronDailyStoryRoute,
   ApiElevenlabsPreviewRoute: ApiElevenlabsPreviewRoute,
 }
 export const routeTree = rootRouteImport
