@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { currentBand } from "@/lib/time-of-day";
 import { PuppetConnect } from "@/components/PuppetConnect";
 import { isPuppetConnected } from "@/lib/puppet";
+import { DownloadAppBanner } from "@/components/DownloadAppBanner";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -240,6 +241,10 @@ function Home() {
             </Link>
           </div>
         </div>
+      </section>
+    
+      <section className="mt-10">
+        <DownloadAppBanner />
       </section>
     </AppShell>
   );
