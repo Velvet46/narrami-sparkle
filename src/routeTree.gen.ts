@@ -21,7 +21,6 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiTtsRouteImport } from './routes/api/tts'
 import { Route as ApiSttRouteImport } from './routes/api/stt'
-import { Route as AdminWaltRouteImport } from './routes/admin/walt'
 import { Route as AuthenticatedPuppetRouteImport } from './routes/_authenticated/puppet'
 import { Route as AuthenticatedParlaRouteImport } from './routes/_authenticated/parla'
 import { Route as AuthenticatedFamigliaRouteImport } from './routes/_authenticated/famiglia'
@@ -89,11 +88,6 @@ const ApiSttRoute = ApiSttRouteImport.update({
   path: '/api/stt',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminWaltRoute = AdminWaltRouteImport.update({
-  id: '/admin/walt',
-  path: '/admin/walt',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthenticatedPuppetRoute = AuthenticatedPuppetRouteImport.update({
   id: '/puppet',
   path: '/puppet',
@@ -145,7 +139,6 @@ export interface FileRoutesByFullPath {
   '/famiglia': typeof AuthenticatedFamigliaRoute
   '/parla': typeof AuthenticatedParlaRoute
   '/puppet': typeof AuthenticatedPuppetRoute
-  '/admin/walt': typeof AdminWaltRoute
   '/api/stt': typeof ApiSttRoute
   '/api/tts': typeof ApiTtsRoute
   '/admin/personaggi': typeof AuthenticatedAdminPersonaggiRoute
@@ -166,7 +159,6 @@ export interface FileRoutesByTo {
   '/famiglia': typeof AuthenticatedFamigliaRoute
   '/parla': typeof AuthenticatedParlaRoute
   '/puppet': typeof AuthenticatedPuppetRoute
-  '/admin/walt': typeof AdminWaltRoute
   '/api/stt': typeof ApiSttRoute
   '/api/tts': typeof ApiTtsRoute
   '/admin/personaggi': typeof AuthenticatedAdminPersonaggiRoute
@@ -189,7 +181,6 @@ export interface FileRoutesById {
   '/_authenticated/famiglia': typeof AuthenticatedFamigliaRoute
   '/_authenticated/parla': typeof AuthenticatedParlaRoute
   '/_authenticated/puppet': typeof AuthenticatedPuppetRoute
-  '/admin/walt': typeof AdminWaltRoute
   '/api/stt': typeof ApiSttRoute
   '/api/tts': typeof ApiTtsRoute
   '/_authenticated/admin/personaggi': typeof AuthenticatedAdminPersonaggiRoute
@@ -212,7 +203,6 @@ export interface FileRouteTypes {
     | '/famiglia'
     | '/parla'
     | '/puppet'
-    | '/admin/walt'
     | '/api/stt'
     | '/api/tts'
     | '/admin/personaggi'
@@ -233,7 +223,6 @@ export interface FileRouteTypes {
     | '/famiglia'
     | '/parla'
     | '/puppet'
-    | '/admin/walt'
     | '/api/stt'
     | '/api/tts'
     | '/admin/personaggi'
@@ -255,7 +244,6 @@ export interface FileRouteTypes {
     | '/_authenticated/famiglia'
     | '/_authenticated/parla'
     | '/_authenticated/puppet'
-    | '/admin/walt'
     | '/api/stt'
     | '/api/tts'
     | '/_authenticated/admin/personaggi'
@@ -275,7 +263,6 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   WaltRoute: typeof WaltRoute
   WaltDashboardRoute: typeof WaltDashboardRoute
-  AdminWaltRoute: typeof AdminWaltRoute
   ApiSttRoute: typeof ApiSttRoute
   ApiTtsRoute: typeof ApiTtsRoute
   ApiCronDailyStoryRoute: typeof ApiCronDailyStoryRoute
@@ -368,13 +355,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSttRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/walt': {
-      id: '/admin/walt'
-      path: '/admin/walt'
-      fullPath: '/admin/walt'
-      preLoaderRoute: typeof AdminWaltRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_authenticated/puppet': {
       id: '/_authenticated/puppet'
       path: '/puppet'
@@ -457,7 +437,6 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   WaltRoute: WaltRoute,
   WaltDashboardRoute: WaltDashboardRoute,
-  AdminWaltRoute: AdminWaltRoute,
   ApiSttRoute: ApiSttRoute,
   ApiTtsRoute: ApiTtsRoute,
   ApiCronDailyStoryRoute: ApiCronDailyStoryRoute,
