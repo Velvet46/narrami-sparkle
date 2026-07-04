@@ -23,6 +23,16 @@ async function assertAdmin(supabase: any, userId: string) {
   if (!data) throw new Error("Accesso negato: solo admin.");
 }
 
+async function isDuplicateSource(supabase: any, sourceUrl: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("stories")
+    .select("id")
+    .eq("source_url", sourceUrl)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return !!data;
+}
+
 // ---------------------------------------------------------------------------
 // 1. TUTTE LE STORIE — lista filtrabile per il pannello "Tutte le Storie"
 // ---------------------------------------------------------------------------
@@ -260,6 +270,10 @@ export const searchAndProposeClassicStory = createServerFn({ method: "POST" })
     const found = await searchPublicDomainTale(topic);
     if (!found) return { ok: false, reason: "Nessun risultato trovato per questa ricerca." };
 
+    if (await isDuplicateSource(context.supabase, found.url)) {
+      return { ok: false, reason: "Questa fiaba (stessa fonte) è già presente in libreria." };
+    }
+
     const groq = createGroq({ apiKey: groqKey });
     const model = groq("llama-3.3-70b-versatile");
 
@@ -363,6 +377,10 @@ export const importClassicStoryFromUrl = createServerFn({ method: "POST" })
     const seed = await fetchPageAsSeed(data.url);
     if (!seed.content) {
       return { ok: false, reason: "Non sono riuscito a leggere del testo da questa pagina." };
+    }
+
+    if (await isDuplicateSource(context.supabase, data.url)) {
+      return { ok: false, reason: "Questa fiaba (stesso link) è già presente in libreria." };
     }
 
     const groq = createGroq({ apiKey: groqKey });
@@ -516,6 +534,14 @@ export async function runDailySourceSearch(supabaseServiceClient: any) {
       .update({ last_used_at: new Date().toISOString() })
       .eq("id", source.id);
     return { ok: false, reason: "Pagina della fonte non leggibile, riprovo domani con la prossima." };
+  }
+
+  if (await isDuplicateSource(supabaseServiceClient, source.url)) {
+    await supabaseServiceClient
+      .from("story_sources")
+      .update({ last_used_at: new Date().toISOString() })
+      .eq("id", source.id);
+    return { ok: false, reason: "Fonte già usata in passato, salto e segno come usata." };
   }
 
   const groq = createGroq({ apiKey: groqKey });

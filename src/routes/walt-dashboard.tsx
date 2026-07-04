@@ -55,7 +55,6 @@ function WaltDashboard() {
   const [pendingStories, setPendingStories] = useState<StoryAdminRow[]>([]);
   const [pendingLoading, setPendingLoading] = useState(false);
   const [searchTopic, setSearchTopic] = useState("");
-  const [searchAge, setSearchAge] = useState<"3-5" | "6-8" | "9-12">("6-8");
   const [searchHoliday, setSearchHoliday] = useState("");
   const [searching, setSearching] = useState(false);
   const [searchMsg, setSearchMsg] = useState<string | null>(null);
@@ -200,7 +199,6 @@ function WaltDashboard() {
       const res = await searchAndProposeClassicStory({
         data: {
           topic: searchTopic || undefined,
-          age: searchAge,
           holidayTag: searchHoliday || undefined,
         },
       });
@@ -452,18 +450,12 @@ function WaltDashboard() {
                       value={searchTopic}
                       onChange={(e) => setSearchTopic(e.target.value)}
                       placeholder='Es. "fiabe di Natale" (vuoto = a caso)'
-                      className="flex-1 min-w-[220px] rounded-xl border border-amber-100 px-4 py-2.5 text-sm outline-none focus:border-amber-400"
-                    />
-                    <select value={searchAge} onChange={(e) => setSearchAge(e.target.value as any)} className="rounded-xl border border-amber-100 px-3 py-2.5 text-sm text-gray-600 outline-none">
-                      <option value="3-5">3-5 anni</option>
-                      <option value="6-8">6-8 anni</option>
-                      <option value="9-12">9-12 anni</option>
-                    </select>
-                    <input
+                      className="flex-1 min-w-[220px] rounded-xl border border-amber-100 px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:border-amber-400"
+                    />                    <input
                       value={searchHoliday}
                       onChange={(e) => setSearchHoliday(e.target.value)}
                       placeholder="Festività (opzionale, es. natale)"
-                      className="rounded-xl border border-amber-100 px-4 py-2.5 text-sm outline-none focus:border-amber-400 w-48"
+                      className="rounded-xl border border-amber-100 px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:border-amber-400 w-48"
                     />
                     <button
                       onClick={handleSearchNew}
@@ -484,7 +476,7 @@ function WaltDashboard() {
                       value={linkUrl}
                       onChange={(e) => setLinkUrl(e.target.value)}
                       placeholder="https://www.liberliber.it/..."
-                      className="flex-1 min-w-[220px] rounded-xl border border-amber-100 px-4 py-2.5 text-sm outline-none focus:border-amber-400"
+                      className="flex-1 min-w-[220px] rounded-xl border border-amber-100 px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:border-amber-400"
                     />
                     <select value={linkAge} onChange={(e) => setLinkAge(e.target.value as any)} className="rounded-xl border border-amber-100 px-3 py-2.5 text-sm text-gray-600 outline-none">
                       <option value="3-5">3-5 anni</option>
@@ -495,7 +487,7 @@ function WaltDashboard() {
                       value={linkHoliday}
                       onChange={(e) => setLinkHoliday(e.target.value)}
                       placeholder="Festività (opzionale, es. natale)"
-                      className="rounded-xl border border-amber-100 px-4 py-2.5 text-sm outline-none focus:border-amber-400 w-48"
+                      className="rounded-xl border border-amber-100 px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:border-amber-400 w-48"
                     />
                     <button
                       onClick={handleImportFromLink}
@@ -656,7 +648,7 @@ function WaltDashboard() {
                       value={newSourceUrl}
                       onChange={(e) => setNewSourceUrl(e.target.value)}
                       placeholder="https://www.liberliber.it/..."
-                      className="flex-1 min-w-[220px] rounded-xl border border-amber-100 px-4 py-2.5 text-sm outline-none focus:border-amber-400"
+                      className="flex-1 min-w-[220px] rounded-xl border border-amber-100 px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:border-amber-400"
                     />
                     <input
                       value={newSourceLabel}
