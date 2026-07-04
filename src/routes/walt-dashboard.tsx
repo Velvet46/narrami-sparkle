@@ -33,6 +33,8 @@ type StoryAdminRow = {
   author: string | null; collection: string | null; review_status: "pending" | "approved" | "rejected";
   suspended: boolean; visible_from: string | null; visible_until: string | null; tags: string[];
   holiday_tag: string | null; source_url: string | null; created_at: string; content?: string;
+  original_text?: string | null; original_language?: string | null; translation_status?: string;
+  content_3min?: string | null; content_10min?: string | null; content_15min?: string | null;
 };
 type Tab = "utenti" | "tono" | "comportamenti" | "storie";
 type StorieSubTab = "verifica" | "tutte" | "festivita" | "fonti";
@@ -547,12 +549,24 @@ function WaltDashboard() {
                             ))}
                           </div>
                         )}
-                        {s.content && (
+                        {s.original_text && (
                           <details className="text-xs text-gray-500">
-                            <summary className="cursor-pointer text-amber-500 font-semibold">Leggi anteprima</summary>
-                            <p className="mt-2 whitespace-pre-line leading-relaxed">{s.content.slice(0, 800)}{s.content.length > 800 ? "…" : ""}</p>
+                            <summary className="cursor-pointer text-blue-500 font-semibold">Testo originale (fonte, {s.original_language ?? "?"})</summary>
+                            <p className="mt-2 whitespace-pre-line leading-relaxed bg-gray-50 rounded-lg p-3">{s.original_text}</p>
                           </details>
                         )}
+                        {s.content && (
+                          <details className="text-xs text-gray-500">
+                            <summary className="cursor-pointer text-amber-500 font-semibold">Il nostro adattamento — 5 min</summary>
+                            <p className="mt-2 whitespace-pre-line leading-relaxed">{s.content}</p>
+                          </details>
+                        )}
+                        <div className="flex gap-3 flex-wrap text-[10px] text-gray-400">
+                          {s.content_3min && <span>✓ 3 min</span>}
+                          {s.content && <span>✓ 5 min</span>}
+                          {s.content_10min && <span>✓ 10 min</span>}
+                          {s.content_15min && <span>✓ 15 min</span>}
+                        </div>
                         {s.source_url && <p className="text-[10px] text-gray-300 truncate">Fonte ispirazione: {s.source_url}</p>}
                       </div>
                     ))}

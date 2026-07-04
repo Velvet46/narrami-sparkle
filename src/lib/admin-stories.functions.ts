@@ -6,7 +6,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const STORY_COLUMNS_ADMIN =
-  "id,title,subtitle,mode,language,age,duration,cover_key,is_preset,story_type,author,collection,review_status,suspended,visible_from,visible_until,tags,holiday_tag,source_url,created_at";
+  "id,title,subtitle,mode,language,age,duration,cover_key,is_preset,story_type,author,collection,review_status,suspended,visible_from,visible_until,tags,holiday_tag,source_url,original_language,translation_status,created_at";
 
 // ---------------------------------------------------------------------------
 // Helper: verifica admin lato server (le funzioni sensibili qui sotto NON
@@ -143,6 +143,8 @@ export const setStoryHoliday = createServerFn({ method: "POST" })
 
 // ---------------------------------------------------------------------------
 // 5. VERIFICA NUOVE STORIE — coda di revisione
+//    Include testo originale + lingua + tutte le durate, per il confronto
+//    "fonte / nostro adattamento" nel pannello admin.
 // ---------------------------------------------------------------------------
 export const listPendingReview = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -150,7 +152,10 @@ export const listPendingReview = createServerFn({ method: "GET" })
     await assertAdmin(context.supabase, context.userId);
     const { data, error } = await context.supabase
       .from("stories")
-      .select(STORY_COLUMNS_ADMIN + ",content")
+      .select(
+        STORY_COLUMNS_ADMIN +
+          ",content,original_text,content_3min,content_10min,content_15min"
+      )
       .eq("review_status", "pending")
       .order("created_at", { ascending: true });
     if (error) throw new Error(error.message);
@@ -194,6 +199,7 @@ const SearchInputSchema = z.object({
 });
 
 const VALID_AGES = ["3-5", "6-8", "9-12"] as const;
+const VALID_LANGUAGES = ["it", "en", "es", "fr", "de", "altro"] as const;
 
 type TavilyResult = { title: string; url: string; content: string };
 
@@ -220,16 +226,23 @@ async function searchPublicDomainTale(topic: string): Promise<TavilyResult | nul
 
 const VALID_MODES = ["avventura", "divertente", "educativa", "magica", "nanna", "sportiva"] as const;
 const WORDS_PER_MINUTE = 130;
-const TARGET_DURATION = 5;
+const REFERENCE_DURATION = 5;
+
+// Le 3 durate aggiuntive da generare a partire dalla versione di riferimento (5 min)
+const EXTRA_DURATIONS: { minutes: number; column: "content_3min" | "content_10min" | "content_15min" }[] = [
+  { minutes: 3, column: "content_3min" },
+  { minutes: 10, column: "content_10min" },
+  { minutes: 15, column: "content_15min" },
+];
 
 function buildAdaptationPrompt(seed: TavilyResult) {
-  const targetWords = TARGET_DURATION * WORDS_PER_MINUTE;
+  const targetWords = REFERENCE_DURATION * WORDS_PER_MINUTE;
   return `Di seguito trovi il RISULTATO DI UNA RICERCA WEB su una fiaba classica di pubblico dominio (titolo e breve descrizione, NON testo integrale protetto).
 
 Titolo trovato: ${seed.title}
 Estratto/descrizione trovata: ${seed.content.slice(0, 600)}
 
-Il tuo compito: scrivi una RISCRITTURA COMPLETAMENTE ORIGINALE in italiano di questa fiaba classica per bambini. Prima di scrivere, valuta TU STESSO a quale fascia d'età si adatta meglio il contenuto originale (temi, complessità, elementi spaventosi) tra: 3-5 anni, 6-8 anni, 9-12 anni. NON copiare o tradurre il testo trovato: usalo solo per capire di quale fiaba si tratta e qual è la trama generale, poi scrivi con parole tue da zero, calibrando linguaggio e ritmo sulla fascia d'età che hai scelto.
+Il tuo compito: scrivi una RISCRITTURA COMPLETAMENTE ORIGINALE in italiano di questa fiaba classica per bambini. Prima di scrivere, valuta TU STESSO a quale fascia d'età si adatta meglio il contenuto originale (temi, complessità, elementi spaventosi) tra: 3-5 anni, 6-8 anni, 9-12 anni. Valuta anche in quale lingua è scritto il testo trovato sopra. NON copiare o tradurre il testo trovato: usalo solo per capire di quale fiaba si tratta e qual è la trama generale, poi scrivi con parole tue da zero, calibrando linguaggio e ritmo sulla fascia d'età che hai scelto.
 
 Regole assolute di sicurezza per bambini:
 - Ammorbidisci elementi spaventosi (niente violenza esplicita, morte cruda).
@@ -245,16 +258,64 @@ SOTTOTITOLO: <una frase poetica, max 12 parole>
 AUTORE: <nome dell'autore/tradizione originale della fiaba, es. "Fratelli Grimm", "Tradizione popolare italiana">
 GENERE: <scegli UNA sola parola tra: avventura, divertente, educativa, magica, nanna, sportiva — quella più adatta alla storia>
 ETA: <scegli UNA sola tra: 3-5, 6-8, 9-12 — quella più adatta al contenuto>
+LINGUA_ORIGINALE: <scegli UNA sola tra: it, en, es, fr, de, altro — la lingua del testo trovato sopra>
 NOTA_PUBBLICO_DOMINIO: <una frase che spiega perché questa fiaba è di pubblico dominio, es. "Fiaba raccolta dai Fratelli Grimm, morti nel 1859 e nel 1863: opera di pubblico dominio da oltre un secolo">
 TAG: <3-5 parole chiave separate da virgola sugli argomenti/temi della storia, es. coraggio, amicizia, bosco, magia>
 ---
 <corpo della storia in italiano, paragrafi brevi separati da riga vuota>`;
 }
 
+function buildDurationAdaptationPrompt(referenceContent: string, age: (typeof VALID_AGES)[number], minutes: number) {
+  const targetWords = minutes * WORDS_PER_MINUTE;
+  const complexityHint =
+    age === "3-5"
+      ? "Usa frasi molto brevi e semplici, vocabolario di base, ripetizioni rassicuranti."
+      : age === "6-8"
+      ? "Usa frasi di media lunghezza, un po' di dialogo, ritmo scorrevole."
+      : "Puoi usare frasi più articolate, qualche descrizione in più, un tocco di suspense leggera.";
+
+  return `Di seguito una fiaba per bambini già scritta in italiano. Riscrivi la STESSA storia — stessi personaggi, stessa trama, stesso finale — ma adattala a una versione di circa ${targetWords} parole (~${minutes} minuti di lettura ad alta voce), pensata per bambini di ${age} anni.
+
+${complexityHint}
+
+Non aggiungere etichette, non ripetere titolo o sottotitolo: restituisci SOLO il corpo della storia, paragrafi brevi separati da riga vuota.
+
+STORIA DI RIFERIMENTO:
+${referenceContent}`;
+}
+
 function parseAge(text: string): (typeof VALID_AGES)[number] {
   const etaMatch = text.match(/^ETA\s*:\s*(.+)/im);
   const raw = (etaMatch?.[1] ?? "").trim();
   return (VALID_AGES as readonly string[]).includes(raw) ? (raw as (typeof VALID_AGES)[number]) : "6-8";
+}
+
+function parseOriginalLanguage(text: string): (typeof VALID_LANGUAGES)[number] {
+  const match = text.match(/^LINGUA_ORIGINALE\s*:\s*(.+)/im);
+  const raw = (match?.[1] ?? "").trim().toLowerCase();
+  return (VALID_LANGUAGES as readonly string[]).includes(raw) ? (raw as (typeof VALID_LANGUAGES)[number]) : "altro";
+}
+
+// Genera le 3 durate extra (3/10/15 min) a partire dalla versione di riferimento da 5 min.
+// Ritorna un oggetto pronto da spalmare nell'insert/update di Supabase.
+async function generateExtraDurations(
+  groq: ReturnType<typeof createGroq>,
+  referenceContent: string,
+  age: (typeof VALID_AGES)[number]
+): Promise<Record<string, string>> {
+  const model = groq("llama-3.3-70b-versatile");
+  const result: Record<string, string> = {};
+
+  for (const { minutes, column } of EXTRA_DURATIONS) {
+    const { text } = await generateText({
+      model,
+      prompt: buildDurationAdaptationPrompt(referenceContent, age, minutes),
+      temperature: 0.7,
+    });
+    result[column] = text.trim();
+  }
+
+  return result;
 }
 
 export const searchAndProposeClassicStory = createServerFn({ method: "POST" })
@@ -296,6 +357,7 @@ export const searchAndProposeClassicStory = createServerFn({ method: "POST" })
     const mode = (VALID_MODES as readonly string[]).includes(rawMode) ? rawMode : "magica";
     const pdNote = (pdNoteMatch?.[1] ?? "").trim();
     const age = parseAge(text);
+    const originalLanguage = parseOriginalLanguage(text);
 
     const tags = (tagMatch?.[1] ?? "")
       .split(",")
@@ -303,12 +365,15 @@ export const searchAndProposeClassicStory = createServerFn({ method: "POST" })
       .filter(Boolean)
       .slice(0, 5);
 
+    const extraDurations = await generateExtraDurations(groq, content, age);
+
     const { data: row, error } = await context.supabase
       .from("stories")
       .insert({
         title: (titleMatch?.[1] ?? found.title).trim(),
         subtitle: (subtitleMatch?.[1] ?? "").trim(),
         content,
+        ...extraDurations,
         mode,
         language: "it",
         is_preset: true,
@@ -316,12 +381,15 @@ export const searchAndProposeClassicStory = createServerFn({ method: "POST" })
         author: (authorMatch?.[1] ?? "Tradizione popolare").trim(),
         collection: pdNote || null,
         age,
-        duration: TARGET_DURATION,
+        duration: REFERENCE_DURATION,
         cover_key: "castle",
         review_status: "pending",
         tags,
         holiday_tag: data.holidayTag ?? null,
         source_url: found.url,
+        original_text: found.content.slice(0, 4000),
+        original_language: originalLanguage,
+        translation_status: originalLanguage === "it" ? "not_needed" : "done",
         expires_at: null,
       })
       .select(STORY_COLUMNS_ADMIN)
@@ -330,6 +398,7 @@ export const searchAndProposeClassicStory = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true, story: row };
   });
+
 // ---------------------------------------------------------------------------
 // 7. IMPORTA DA LINK — come sopra ma parti da un URL che conosci già
 //    (Liber Liber, Wikisource, Progetto Gutenberg...) invece di cercare con
@@ -395,10 +464,17 @@ export const importClassicStoryFromUrl = createServerFn({ method: "POST" })
     const titleMatch = text.match(/^TITOLO\s*:\s*(.+)/im);
     const subtitleMatch = text.match(/^SOTTOTITOLO\s*:\s*(.+)/im);
     const authorMatch = text.match(/^AUTORE\s*:\s*(.+)/im);
+    const modeMatch = text.match(/^GENERE\s*:\s*(.+)/im);
+    const pdNoteMatch = text.match(/^NOTA_PUBBLICO_DOMINIO\s*:\s*(.+)/im);
     const tagMatch = text.match(/^TAG\s*:\s*(.+)/im);
     const splitIdx = text.indexOf("---");
     const content = splitIdx >= 0 ? text.slice(splitIdx + 3).trim() : text.trim();
+
+    const rawMode = (modeMatch?.[1] ?? "").trim().toLowerCase();
+    const mode = (VALID_MODES as readonly string[]).includes(rawMode) ? rawMode : "magica";
     const age = parseAge(text);
+    const originalLanguage = parseOriginalLanguage(text);
+    const pdNote = (pdNoteMatch?.[1] ?? "").trim();
 
     const tags = (tagMatch?.[1] ?? "")
       .split(",")
@@ -406,25 +482,31 @@ export const importClassicStoryFromUrl = createServerFn({ method: "POST" })
       .filter(Boolean)
       .slice(0, 5);
 
+    const extraDurations = await generateExtraDurations(groq, content, age);
+
     const { data: row, error } = await context.supabase
       .from("stories")
       .insert({
         title: (titleMatch?.[1] ?? seed.title).trim(),
         subtitle: (subtitleMatch?.[1] ?? "").trim(),
         content,
-        mode: MODE_FALLBACK,
+        ...extraDurations,
+        mode,
         language: "it",
         is_preset: true,
         story_type: data.holidayTag ? "seasonal" : "classic",
         author: (authorMatch?.[1] ?? "Tradizione popolare").trim(),
-        collection: null,
+        collection: pdNote || null,
         age,
-        duration: TARGET_DURATION,
+        duration: REFERENCE_DURATION,
         cover_key: "castle",
         review_status: "pending", // <-- resta in coda finché Walt non approva
         tags,
         holiday_tag: data.holidayTag ?? null,
         source_url: data.url,
+        original_text: seed.content.slice(0, 4000),
+        original_language: originalLanguage,
+        translation_status: originalLanguage === "it" ? "not_needed" : "done",
         expires_at: null,
       })
       .select(STORY_COLUMNS_ADMIN)
@@ -564,11 +646,14 @@ export async function runDailySourceSearch(supabaseServiceClient: any) {
   const rawMode = (modeMatch?.[1] ?? "").trim().toLowerCase();
   const mode = (VALID_MODES as readonly string[]).includes(rawMode) ? rawMode : "magica";
   const age = parseAge(text);
+  const originalLanguage = parseOriginalLanguage(text);
   const tags = (tagMatch?.[1] ?? "")
     .split(",")
     .map((t: string) => t.trim().toLowerCase())
     .filter(Boolean)
     .slice(0, 5);
+
+  const extraDurations = await generateExtraDurations(groq, content, age);
 
   const { data: row, error } = await supabaseServiceClient
     .from("stories")
@@ -576,6 +661,7 @@ export async function runDailySourceSearch(supabaseServiceClient: any) {
       title: (titleMatch?.[1] ?? seed.title).trim(),
       subtitle: (subtitleMatch?.[1] ?? "").trim(),
       content,
+      ...extraDurations,
       mode,
       language: "it",
       is_preset: true,
@@ -583,12 +669,15 @@ export async function runDailySourceSearch(supabaseServiceClient: any) {
       author: (authorMatch?.[1] ?? "Tradizione popolare").trim(),
       collection: (pdNoteMatch?.[1] ?? "").trim() || null,
       age,
-      duration: TARGET_DURATION,
+      duration: REFERENCE_DURATION,
       cover_key: "castle",
       review_status: "pending",
       tags,
       holiday_tag: null,
       source_url: source.url,
+      original_text: seed.content.slice(0, 4000),
+      original_language: originalLanguage,
+      translation_status: originalLanguage === "it" ? "not_needed" : "done",
       expires_at: null,
     })
     .select("id,title")
