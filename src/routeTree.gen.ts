@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WaltDashboardRouteImport } from './routes/walt-dashboard'
 import { Route as WaltRouteImport } from './routes/walt'
+import { Route as TestAudioRouteImport } from './routes/test-audio'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as LibreriaRouteImport } from './routes/libreria'
 import { Route as GeneraRouteImport } from './routes/genera'
@@ -37,6 +38,11 @@ const WaltDashboardRoute = WaltDashboardRouteImport.update({
 const WaltRoute = WaltRouteImport.update({
   id: '/walt',
   path: '/walt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TestAudioRoute = TestAudioRouteImport.update({
+  id: '/test-audio',
+  path: '/test-audio',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -134,6 +140,7 @@ export interface FileRoutesByFullPath {
   '/genera': typeof GeneraRoute
   '/libreria': typeof LibreriaRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/test-audio': typeof TestAudioRoute
   '/walt': typeof WaltRoute
   '/walt-dashboard': typeof WaltDashboardRoute
   '/famiglia': typeof AuthenticatedFamigliaRoute
@@ -154,6 +161,7 @@ export interface FileRoutesByTo {
   '/genera': typeof GeneraRoute
   '/libreria': typeof LibreriaRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/test-audio': typeof TestAudioRoute
   '/walt': typeof WaltRoute
   '/walt-dashboard': typeof WaltDashboardRoute
   '/famiglia': typeof AuthenticatedFamigliaRoute
@@ -176,6 +184,7 @@ export interface FileRoutesById {
   '/genera': typeof GeneraRoute
   '/libreria': typeof LibreriaRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/test-audio': typeof TestAudioRoute
   '/walt': typeof WaltRoute
   '/walt-dashboard': typeof WaltDashboardRoute
   '/_authenticated/famiglia': typeof AuthenticatedFamigliaRoute
@@ -198,6 +207,7 @@ export interface FileRouteTypes {
     | '/genera'
     | '/libreria'
     | '/sitemap.xml'
+    | '/test-audio'
     | '/walt'
     | '/walt-dashboard'
     | '/famiglia'
@@ -218,6 +228,7 @@ export interface FileRouteTypes {
     | '/genera'
     | '/libreria'
     | '/sitemap.xml'
+    | '/test-audio'
     | '/walt'
     | '/walt-dashboard'
     | '/famiglia'
@@ -239,6 +250,7 @@ export interface FileRouteTypes {
     | '/genera'
     | '/libreria'
     | '/sitemap.xml'
+    | '/test-audio'
     | '/walt'
     | '/walt-dashboard'
     | '/_authenticated/famiglia'
@@ -261,6 +273,7 @@ export interface RootRouteChildren {
   GeneraRoute: typeof GeneraRoute
   LibreriaRoute: typeof LibreriaRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  TestAudioRoute: typeof TestAudioRoute
   WaltRoute: typeof WaltRoute
   WaltDashboardRoute: typeof WaltDashboardRoute
   ApiSttRoute: typeof ApiSttRoute
@@ -283,6 +296,13 @@ declare module '@tanstack/react-router' {
       path: '/walt'
       fullPath: '/walt'
       preLoaderRoute: typeof WaltRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/test-audio': {
+      id: '/test-audio'
+      path: '/test-audio'
+      fullPath: '/test-audio'
+      preLoaderRoute: typeof TestAudioRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sitemap.xml': {
@@ -435,6 +455,7 @@ const rootRouteChildren: RootRouteChildren = {
   GeneraRoute: GeneraRoute,
   LibreriaRoute: LibreriaRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  TestAudioRoute: TestAudioRoute,
   WaltRoute: WaltRoute,
   WaltDashboardRoute: WaltDashboardRoute,
   ApiSttRoute: ApiSttRoute,
