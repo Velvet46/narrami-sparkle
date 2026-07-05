@@ -6,8 +6,6 @@ export const Route = createFileRoute("/walt")({
   component: WaltLogin,
 });
 
-const WALT_EMAIL = "advisor.impresa@gmail.com";
-const WALT_PASSWORD = "Maremma_1979";
 
 function WaltLogin() {
   const nav = useNavigate();
@@ -19,11 +17,7 @@ function WaltLogin() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (email !== WALT_EMAIL || password !== WALT_PASSWORD) {
-      setError("Credenziali non valide.");
-      return;
-    }
-    setLoading(true);
+setLoading(true);
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
