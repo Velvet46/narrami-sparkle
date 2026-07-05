@@ -28,9 +28,9 @@ async function isDuplicateSource(supabase: any, sourceUrl: string): Promise<bool
     .from("stories")
     .select("id")
     .eq("source_url", sourceUrl)
-    .maybeSingle();
+    .limit(1);
   if (error) throw new Error(error.message);
-  return !!data;
+  return (data?.length ?? 0) > 0;
 }
 
 // ---------------------------------------------------------------------------

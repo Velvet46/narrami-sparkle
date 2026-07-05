@@ -93,7 +93,7 @@ function pickCoverKey(d: z.infer<typeof DraftSchema>): string {
 
 const HOURS_48_MS = 48 * 60 * 60 * 1000;
 const STORY_COLUMNS =
-  "id,title,subtitle,content,mode,language,favorite,created_at,child_id,expires_at,duration,cover_key,age";
+  "id,title,subtitle,content,mode,language,favorite,created_at,child_id,expires_at,duration,cover_key,age,story_type,holiday_tag,tags";
 
 export const generateStory = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -199,13 +199,19 @@ export const deleteStory = createServerFn({ method: "POST" })
 export const listPresetStories = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    const now = new Date().toISOString();
     const { data, error } = await context.supabase
       .from("stories")
-      .select(STORY_COLUMNS)
+      .select(STORY_COLUMNS + ",content_3min,content_10min,content_15min")
       .eq("is_preset", true)
+      .eq("review_status", "approved")
+      .eq("suspended", false)
       .order("mode", { ascending: true });
     if (error) throw new Error(error.message);
-    return data ?? [];
+    const visible = (data ?? []).filter((s: any) =>
+      (!s.visible_from || s.visible_from <= now) && (!s.visible_until || s.visible_until >= now)
+    );
+    return visible;
   });
 
 export const getStory = createServerFn({ method: "GET" })
