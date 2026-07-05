@@ -51,6 +51,7 @@ function LibraryPage() {
   const [filter, setFilter] = useState<Filter>("tutte");
   const [modeFilter, setModeFilter] = useState<StoryMode | "tutte">("tutte");
   const [ageFilter, setAgeFilter] = useState<AgeRange | "tutte">("tutte");
+  const [typeFilter, setTypeFilter] = useState<"tutte" | "original" | "classic" | "seasonal">("tutte");
   const [query, setQuery] = useState("");
 
   useEffect(() => {
@@ -84,6 +85,7 @@ function LibraryPage() {
     let list = presetStories;
     if (modeFilter !== "tutte") list = list.filter((s) => s.mode === modeFilter);
     if (ageFilter !== "tutte") list = list.filter((s) => s.age === ageFilter);
+    if (typeFilter !== "tutte") list = list.filter((s: any) => s.story_type === typeFilter);
     if (query.trim()) {
       const q = query.toLowerCase();
       list = list.filter(
@@ -93,7 +95,7 @@ function LibraryPage() {
       );
     }
     return list;
-  }, [presetStories, modeFilter, query]);
+  }, [presetStories, modeFilter, ageFilter, typeFilter, query]);
 
   return (
     <AppShell>
@@ -191,6 +193,25 @@ function LibraryPage() {
                 }`}
               >
                 {a.label}
+              </button>
+            ))}
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {([
+              { value: "tutte" as const, label: "Tutti i tipi" },
+              { value: "original" as const, label: "MilleStorie originali" },
+              { value: "classic" as const, label: "Fiabe classiche" },
+              { value: "seasonal" as const, label: "Festivita" },
+            ]).map((t) => (
+              <button
+                key={t.value}
+                type="button"
+                onClick={() => setTypeFilter(t.value)}
+                className={`rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition-colors ${
+                  typeFilter === t.value ? "bg-viola/80 text-primary-foreground" : "bg-white/5 text-muted-foreground"
+                }`}
+              >
+                {t.label}
               </button>
             ))}
           </div>
